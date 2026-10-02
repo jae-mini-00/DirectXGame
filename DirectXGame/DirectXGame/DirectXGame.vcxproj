@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{0ed1bffc-2595-47f7-bf4d-31e7bd1ca24b}</ProjectGuid>
-    <RootNamespace>KogDirectXGame</RootNamespace>
+    <ProjectGuid>{c63c18eb-f4f8-4cc5-a537-d9383e9ba05d}</ProjectGuid>
+    <RootNamespace>DirectXGame</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

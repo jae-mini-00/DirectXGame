@@ -1,30 +1,39 @@
 #include <windows.h>
 
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK WindowProc(
+    HWND hwnd,
+    UINT msg,
+    WPARAM wParam,
+    LPARAM lParam)
 {
-    switch (msg) {
-        case WM_DESTROY:
-            PostQuitMessage(0);
-            return 0;
+    switch (msg)
+    {
+    case WM_DESTROY:
+        PostQuitMessage(0);
+        return 0;
     }
 
     return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
+int WINAPI WinMain(
+    HINSTANCE hInstance,
+    HINSTANCE,
+    LPSTR,
+    int nCmdShow)
 {
     WNDCLASS wc = {};
 
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = hInstance;
-    wc.lpszClassName = L"KogGameWindow";
+    wc.lpszClassName = L"GameWindow";
 
     RegisterClass(&wc);
 
     HWND hwnd = CreateWindowEx(
         0,
-        L"KogGameWindow",
-        L"KOG DirectX Game",
+        L"GameWindow",
+        L"DirectX Game",
         WS_OVERLAPPEDWINDOW,
         100,
         100,
