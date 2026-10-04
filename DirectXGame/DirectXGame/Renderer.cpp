@@ -1,6 +1,8 @@
 #include "Renderer.h"
 
-Renderer::Renderer() : device(nullptr), context(nullptr), swapChain(nullptr), renderTargetView(nullptr) {}
+Renderer::Renderer() : device(nullptr), context(nullptr), swapChain(nullptr), 
+renderTargetView(nullptr), vertexBuffer(nullptr), vertexShader(nullptr), 
+pixelShader(nullptr), inputLayout(nullptr) {}
 Renderer::~Renderer() {}
 
 HRESULT Renderer::Initialize(HWND hwnd) {
@@ -15,19 +17,26 @@ HRESULT Renderer::Initialize(HWND hwnd) {
     DXGI_SWAP_CHAIN_DESC swapChainDesc = CreateswapChainDescInfo(hwnd);
     const DXGI_SWAP_CHAIN_DESC* pSwapChainDesc = &swapChainDesc;
 
-    HRESULT hr = D3D11CreateDeviceAndSwapChain(pAdapter, DriverType, Software, Flags,
+    RETURN_IF_FAILED(D3D11CreateDeviceAndSwapChain(pAdapter, DriverType, Software, Flags,
         FeatureInfo.levels, FeatureInfo.count, SDKVersion, pSwapChainDesc, 
-        &swapChain, &device, pFeatureLevel, &context);
-    if (FAILED(hr))
-        return hr;
+        &swapChain, &device, pFeatureLevel, &context));
 
-
-    hr = CreateRenderTarget();
-    if (FAILED(hr))
-        return hr;
+    RETURN_IF_FAILED(CreateRenderTarget());
 
     D3D11_VIEWPORT viewport = CreateViewport(hwnd);
     context->RSSetViewports(1, &viewport);
+
+    Vertex vertices[3] = {
+       {  0.0f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f },
+       {  0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f },
+       { -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f }
+    };
+    RETURN_IF_FAILED(CreateVertexBuffer(vertices, 3));
+
+    RETURN_IF_FAILED(CreateVertexShader());
+
+    RETURN_IF_FAILED(CreatePixelShader());
+
     return S_OK;
 }
 
@@ -64,15 +73,10 @@ DXGI_SWAP_CHAIN_DESC Renderer::CreateswapChainDescInfo(HWND hwnd) {
 
 HRESULT Renderer::CreateRenderTarget() {
     ID3D11Texture2D* backBuffer = nullptr;
-    HRESULT hr = swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&backBuffer));
-    if (FAILED(hr))
-        return hr;
+    RETURN_IF_FAILED(swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&backBuffer)));
 
-    hr = device->CreateRenderTargetView(backBuffer, nullptr, &renderTargetView);
+    RETURN_IF_FAILED_AND_RELEASE(device->CreateRenderTargetView(backBuffer, nullptr, &renderTargetView), backBuffer);
     backBuffer->Release();
-    if (FAILED(hr))
-        return hr;
-
     context->OMSetRenderTargets(1, &renderTargetView, nullptr);
 
     return S_OK;
@@ -87,8 +91,100 @@ FeatureLevelInfo Renderer::CreateFeatureLevelInfo() {
     return Info;
 }
 
+HRESULT Renderer::CreateVertexBuffer(const Vertex *vertices, UINT count) {
+    D3D11_BUFFER_DESC bufferDesc = {};
+    D3D11_SUBRESOURCE_DATA initData = {};
+
+    initData.pSysMem = vertices;
+    bufferDesc.ByteWidth = sizeof(Vertex) * count;
+    bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+    bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    bufferDesc.CPUAccessFlags = 0;
+    bufferDesc.MiscFlags = 0;
+    bufferDesc.StructureByteStride = 0;
+
+    RETURN_IF_FAILED(device->CreateBuffer(&bufferDesc, &initData, &vertexBuffer));
+
+    return S_OK;
+}
+
+void Renderer::BindVertexStage() {
+    UINT offset = 0;
+    UINT stride = sizeof(Vertex);
+    context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    context->IASetInputLayout(inputLayout);
+    context->VSSetShader(vertexShader, nullptr, 0);
+}
+
+HRESULT Renderer::CreateInputLayout(ID3DBlob* shaderBlob) {
+    D3D11_INPUT_ELEMENT_DESC layout[2] = {};
+
+    layout[0].SemanticName = "POSITION";
+    layout[0].SemanticIndex = 0;
+    layout[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+    layout[0].InputSlot = 0;
+    layout[0].AlignedByteOffset = 0;
+    layout[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+    layout[0].InstanceDataStepRate = 0;
+    layout[1].SemanticName = "COLOR";
+    layout[1].SemanticIndex = 0;
+    layout[1].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    layout[1].InputSlot = 0;
+    layout[1].AlignedByteOffset = 12;
+    layout[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+    layout[1].InstanceDataStepRate = 0;
+
+    RETURN_IF_FAILED(device->CreateInputLayout(layout, 2, shaderBlob->GetBufferPointer(), 
+        shaderBlob->GetBufferSize(), &inputLayout));
+
+
+    return S_OK;
+}
+
+HRESULT Renderer::CreateVertexShader() {
+    ID3DBlob* errorBlob = nullptr;
+    ID3DBlob* shaderBlob = nullptr;
+    RETURN_IF_FAILED_AND_RELEASE(D3DCompileFromFile(L"VertexShader.hlsl", nullptr,
+        nullptr, "main", "vs_5_0", 0, 0, &shaderBlob, &errorBlob), errorBlob);
+    if (errorBlob) {
+        errorBlob->Release();
+        errorBlob = nullptr;
+    }
+
+    RETURN_IF_FAILED_AND_RELEASE(device->CreateVertexShader(shaderBlob->GetBufferPointer(),
+        shaderBlob->GetBufferSize(), nullptr, &vertexShader), shaderBlob);
+
+    RETURN_IF_FAILED_AND_RELEASE(CreateInputLayout(shaderBlob), shaderBlob);
+    shaderBlob->Release();
+
+    BindVertexStage();
+
+    return S_OK;
+}
+
+
+HRESULT Renderer::CreatePixelShader() {
+    ID3DBlob* errorBlob = nullptr;
+    ID3DBlob* shaderBlob = nullptr;
+    RETURN_IF_FAILED_AND_RELEASE(D3DCompileFromFile(L"PixelShader.hlsl", nullptr,
+        nullptr, "main", "ps_5_0", 0, 0, &shaderBlob, &errorBlob), errorBlob);
+    if (errorBlob) {
+        errorBlob->Release();
+        errorBlob = nullptr;
+    }
+    RETURN_IF_FAILED_AND_RELEASE(device->CreatePixelShader(shaderBlob->GetBufferPointer(),
+        shaderBlob->GetBufferSize(), nullptr, &pixelShader), shaderBlob);
+    shaderBlob->Release();
+
+    context->PSSetShader(pixelShader, nullptr, 0);
+
+    return S_OK;
+}
+
 void Renderer::Render() {
-    float rgbaColor[4] = {0.0f, 0.2f, 0.4f, 1.0f};
+    float rgbaColor[4] = { 0.0f, 0.2f, 0.4f, 1.0f };
     context->ClearRenderTargetView(renderTargetView, rgbaColor);
+    context->Draw(3, 0);
     swapChain->Present(1, 0);
 }

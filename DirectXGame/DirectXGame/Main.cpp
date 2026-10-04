@@ -53,7 +53,15 @@ int WINAPI WinMain(
     HRESULT hr = renderer.Initialize(hwnd);
 
     if (FAILED(hr))
+    {
+        MessageBox(
+            hwnd,
+            L"Renderer Initialize Failed",
+            L"Error",
+            MB_OK
+        );
         return 0;
+    }
 
     ShowWindow(hwnd, nCmdShow);
 
