@@ -1,4 +1,5 @@
-#include <windows.h>
+#include "Renderer.h"
+
 
 LRESULT CALLBACK WindowProc(
     HWND hwnd,
@@ -46,6 +47,12 @@ int WINAPI WinMain(
     );
 
     if (hwnd == nullptr)
+        return 0;
+
+    Renderer renderer;
+    HRESULT hr = renderer.Initialize(hwnd);
+
+    if (FAILED(hr))
         return 0;
 
     ShowWindow(hwnd, nCmdShow);
