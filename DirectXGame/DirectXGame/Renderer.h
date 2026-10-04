@@ -17,12 +17,15 @@ public:
     ~Renderer();
 
     HRESULT Initialize(HWND hwnd);
-
+    void Render();
 private:
     ID3D11Device* device;
     ID3D11DeviceContext* context;
     IDXGISwapChain* swapChain;
+    ID3D11RenderTargetView* renderTargetView;
 
     DXGI_SWAP_CHAIN_DESC CreateswapChainDescInfo(HWND hwnd);
     FeatureLevelInfo CreateFeatureLevelInfo();
+    D3D11_VIEWPORT CreateViewport(HWND hwnd);
+    HRESULT CreateRenderTarget();
 };

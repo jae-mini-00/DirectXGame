@@ -73,8 +73,7 @@ int WINAPI WinMain(
         }
         else
         {
-            // 게임 업데이트
-            // 렌더링
+            renderer.Render();
         }
     }
 
