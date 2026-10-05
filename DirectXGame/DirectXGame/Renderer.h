@@ -49,6 +49,7 @@ private:
     IDXGISwapChain* swapChain;
     ID3D11RenderTargetView* renderTargetView;
     ID3D11Buffer* vertexBuffer;
+    ID3D11Buffer* indexBuffer;
     ID3D11InputLayout* inputLayout;
     ID3D11VertexShader* vertexShader;
     ID3D11PixelShader* pixelShader;
@@ -59,6 +60,7 @@ private:
     D3D11_VIEWPORT CreateViewport(HWND hwnd);
     HRESULT CreateRenderTarget();
     HRESULT CreateVertexBuffer(const Vertex* vertices, UINT count);
+    HRESULT CreateIndexBuffer(const unsigned int* indices, UINT count);
     HRESULT CreateInputLayout(ID3DBlob* shaderBlob);
     HRESULT CreateVertexShader();
     HRESULT CreatePixelShader();

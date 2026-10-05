@@ -1,9 +1,29 @@
 #include "Renderer.h"
 
 Renderer::Renderer() : device(nullptr), context(nullptr), swapChain(nullptr), 
-renderTargetView(nullptr), vertexBuffer(nullptr), vertexShader(nullptr), 
-pixelShader(nullptr), inputLayout(nullptr) {}
-Renderer::~Renderer() {}
+renderTargetView(nullptr), vertexBuffer(nullptr), indexBuffer(nullptr),
+vertexShader(nullptr), pixelShader(nullptr), inputLayout(nullptr) {}
+
+Renderer::~Renderer() {
+    if (pixelShader)
+        pixelShader->Release();
+    if (vertexShader)
+        vertexShader->Release();
+    if (inputLayout)
+        inputLayout->Release();
+    if (indexBuffer)
+        indexBuffer->Release();
+    if (vertexBuffer)
+        vertexBuffer->Release();
+    if (renderTargetView)
+        renderTargetView->Release();
+    if (swapChain)
+        swapChain->Release();
+    if (context)
+        context->Release();
+    if (device)
+        device->Release();
+}
 
 HRESULT Renderer::Initialize(HWND hwnd) {
     IDXGIAdapter* pAdapter = nullptr;
@@ -26,12 +46,19 @@ HRESULT Renderer::Initialize(HWND hwnd) {
     D3D11_VIEWPORT viewport = CreateViewport(hwnd);
     context->RSSetViewports(1, &viewport);
 
-    Vertex vertices[3] = {
-       {  0.0f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f },
-       {  0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f },
-       { -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f }
+    Vertex vertices[4] = {
+        { -0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f },
+        {  0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f },
+        {  0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f },
+        { -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f }
     };
-    RETURN_IF_FAILED(CreateVertexBuffer(vertices, 3));
+    unsigned int indices[6] = {
+    0, 1, 2,
+    0, 2, 3,
+    };
+    RETURN_IF_FAILED(CreateVertexBuffer(vertices, 4));
+
+    RETURN_IF_FAILED(CreateIndexBuffer(indices, 6));
 
     RETURN_IF_FAILED(CreateVertexShader());
 
@@ -112,10 +139,29 @@ void Renderer::BindVertexStage() {
     UINT offset = 0;
     UINT stride = sizeof(Vertex);
     context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+    context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     context->IASetInputLayout(inputLayout);
     context->VSSetShader(vertexShader, nullptr, 0);
 }
+
+HRESULT Renderer::CreateIndexBuffer(const unsigned int* indices, UINT count) {
+    D3D11_BUFFER_DESC bufferDesc = {};
+    D3D11_SUBRESOURCE_DATA initData = {};
+
+    initData.pSysMem = indices;
+    bufferDesc.ByteWidth = sizeof(unsigned int) * count;
+    bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+    bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+    bufferDesc.CPUAccessFlags = 0;
+    bufferDesc.MiscFlags = 0;
+    bufferDesc.StructureByteStride = 0;
+
+    RETURN_IF_FAILED(device->CreateBuffer(&bufferDesc, &initData, &indexBuffer));
+
+    return S_OK;
+}
+
 
 HRESULT Renderer::CreateInputLayout(ID3DBlob* shaderBlob) {
     D3D11_INPUT_ELEMENT_DESC layout[2] = {};
@@ -184,7 +230,8 @@ HRESULT Renderer::CreatePixelShader() {
 
 void Renderer::Render() {
     float rgbaColor[4] = { 0.0f, 0.2f, 0.4f, 1.0f };
+
     context->ClearRenderTargetView(renderTargetView, rgbaColor);
-    context->Draw(3, 0);
+    context->DrawIndexed(6, 0, 0);
     swapChain->Present(1, 0);
 }
