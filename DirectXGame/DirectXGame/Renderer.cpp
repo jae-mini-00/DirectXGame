@@ -2,9 +2,11 @@
 
 Renderer::Renderer() : device(nullptr), context(nullptr), swapChain(nullptr), 
 renderTargetView(nullptr), vertexBuffer(nullptr), indexBuffer(nullptr),
-vertexShader(nullptr), pixelShader(nullptr), inputLayout(nullptr) {}
+vertexShader(nullptr), pixelShader(nullptr), inputLayout(nullptr), constantBuffer(nullptr) {}
 
 Renderer::~Renderer() {
+    if (constantBuffer)
+        constantBuffer->Release();
     if (pixelShader)
         pixelShader->Release();
     if (vertexShader)
@@ -46,25 +48,89 @@ HRESULT Renderer::Initialize(HWND hwnd) {
     D3D11_VIEWPORT viewport = CreateViewport(hwnd);
     context->RSSetViewports(1, &viewport);
 
-    Vertex vertices[4] = {
-        { -0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f },
-        {  0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f },
-        {  0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f },
-        { -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f }
+    Vertex vertices[8] = {
+        { -0.5f,  0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
+        {  0.5f,  0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
+        {  0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
+        { -0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
+        { -0.5f,  0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
+        {  0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
+        {  0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
+        { -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f }
     };
-    unsigned int indices[6] = {
-    0, 1, 2,
-    0, 2, 3,
-    };
-    RETURN_IF_FAILED(CreateVertexBuffer(vertices, 4));
+    unsigned int indices[36] = {
+        // z +
+        0, 1, 2,
+        0, 2, 3,
 
-    RETURN_IF_FAILED(CreateIndexBuffer(indices, 6));
+        // 오른쪽 +X
+        1, 5, 6,
+        1, 6, 2,
+
+        // z -
+        4, 6, 5,
+        4, 7, 6,
+
+        // 왼쪽 -X
+        0, 3, 7,
+        0, 7, 4,
+
+        // 위 +Y
+        4, 5, 1,
+        4, 1, 0,
+
+        // 아래 -Y
+        3, 2, 6,
+        3, 6, 7
+    };
+
+    RETURN_IF_FAILED(CreateVertexBuffer(vertices, 8));
+    RETURN_IF_FAILED(CreateIndexBuffer(indices, 36));
+
+
+    RETURN_IF_FAILED(CreateConstantBuffer());
 
     RETURN_IF_FAILED(CreateVertexShader());
-
     RETURN_IF_FAILED(CreatePixelShader());
 
+    
+    DirectX::XMMATRIX world = DirectX::XMMatrixIdentity();
+    world = DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(45.0f));
+
+    DirectX::XMVECTOR eye = DirectX::XMVectorSet(0.0f, 0.0f, -3.0f, 0.0f);
+    DirectX::XMVECTOR target = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+    DirectX::XMVECTOR up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+    DirectX::XMMATRIX view = DirectX::XMMatrixLookAtLH(eye, target, up);
+
+    RECT rect;
+    GetClientRect(hwnd, &rect);
+
+    float width = static_cast<float>(rect.right - rect.left);
+    float height = static_cast<float>(rect.bottom - rect.top);
+
+    float aspect = width / height;
+    DirectX::XMMATRIX projection = DirectX::XMMatrixPerspectiveFovLH(
+        DirectX::XMConvertToRadians(60.0f), aspect, 0.1f, 100.0f);
+
+    MatrixBuffer matrixData;
+    matrixData.world = DirectX::XMMatrixTranspose(world);
+    matrixData.view = DirectX::XMMatrixTranspose(view);
+    matrixData.projection = DirectX::XMMatrixTranspose(projection);
+    context->UpdateSubresource(constantBuffer, 0, nullptr,
+        &matrixData, 0, 0);
+
     return S_OK;
+}
+
+void Renderer::BindVertexStage() {
+    UINT offset = 0;
+    UINT stride = sizeof(Vertex);
+    context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+    context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    context->IASetInputLayout(inputLayout);
+    context->VSSetShader(vertexShader, nullptr, 0);
+    context->VSSetConstantBuffers(0, 1, &constantBuffer);
 }
 
 D3D11_VIEWPORT Renderer::CreateViewport(HWND hwnd) {
@@ -135,16 +201,6 @@ HRESULT Renderer::CreateVertexBuffer(const Vertex *vertices, UINT count) {
     return S_OK;
 }
 
-void Renderer::BindVertexStage() {
-    UINT offset = 0;
-    UINT stride = sizeof(Vertex);
-    context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
-    context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    context->IASetInputLayout(inputLayout);
-    context->VSSetShader(vertexShader, nullptr, 0);
-}
-
 HRESULT Renderer::CreateIndexBuffer(const unsigned int* indices, UINT count) {
     D3D11_BUFFER_DESC bufferDesc = {};
     D3D11_SUBRESOURCE_DATA initData = {};
@@ -162,6 +218,20 @@ HRESULT Renderer::CreateIndexBuffer(const unsigned int* indices, UINT count) {
     return S_OK;
 }
 
+HRESULT Renderer::CreateConstantBuffer() {
+    D3D11_BUFFER_DESC bufferDesc = {};
+
+    bufferDesc.ByteWidth = sizeof(MatrixBuffer);
+    bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+    bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    bufferDesc.CPUAccessFlags = 0;
+    bufferDesc.MiscFlags = 0;
+    bufferDesc.StructureByteStride = 0;
+
+    RETURN_IF_FAILED(device->CreateBuffer(&bufferDesc, nullptr, &constantBuffer));
+
+    return S_OK;
+}
 
 HRESULT Renderer::CreateInputLayout(ID3DBlob* shaderBlob) {
     D3D11_INPUT_ELEMENT_DESC layout[2] = {};
@@ -229,9 +299,9 @@ HRESULT Renderer::CreatePixelShader() {
 }
 
 void Renderer::Render() {
-    float rgbaColor[4] = { 0.0f, 0.2f, 0.4f, 1.0f };
+    float rgbaColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
     context->ClearRenderTargetView(renderTargetView, rgbaColor);
-    context->DrawIndexed(6, 0, 0);
+    context->DrawIndexed(36, 0, 0);
     swapChain->Present(1, 0);
 }

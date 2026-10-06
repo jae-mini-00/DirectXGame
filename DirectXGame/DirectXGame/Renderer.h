@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <d3d11.h>
 #include <d3dcompiler.h>
+#include <DirectXMath.h>
 
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "d3d11.lib")
@@ -35,6 +36,13 @@ struct Vertex
     float r, g, b, a;
 };
 
+struct MatrixBuffer
+{
+    DirectX::XMMATRIX world;
+    DirectX::XMMATRIX view;
+    DirectX::XMMATRIX projection;
+};
+
 class Renderer
 {
 public:
@@ -53,6 +61,7 @@ private:
     ID3D11InputLayout* inputLayout;
     ID3D11VertexShader* vertexShader;
     ID3D11PixelShader* pixelShader;
+    ID3D11Buffer* constantBuffer;
 
     void BindVertexStage();
     DXGI_SWAP_CHAIN_DESC CreateswapChainDescInfo(HWND hwnd);
@@ -64,4 +73,5 @@ private:
     HRESULT CreateInputLayout(ID3DBlob* shaderBlob);
     HRESULT CreateVertexShader();
     HRESULT CreatePixelShader();
+    HRESULT CreateConstantBuffer();
 };
