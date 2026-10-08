@@ -2,9 +2,14 @@
 
 Renderer::Renderer() : device(nullptr), context(nullptr), swapChain(nullptr), 
 renderTargetView(nullptr), vertexBuffer(nullptr), indexBuffer(nullptr),
-vertexShader(nullptr), pixelShader(nullptr), inputLayout(nullptr), constantBuffer(nullptr) {}
+vertexShader(nullptr), pixelShader(nullptr), inputLayout(nullptr), constantBuffer(nullptr),
+depthBuffer(nullptr), depthStencilView(nullptr), rotationAngle(0.0f) {}
 
 Renderer::~Renderer() {
+    if (depthStencilView)
+        depthStencilView->Release();
+    if (depthBuffer)
+        depthBuffer->Release();
     if (constantBuffer)
         constantBuffer->Release();
     if (pixelShader)
@@ -94,32 +99,67 @@ HRESULT Renderer::Initialize(HWND hwnd) {
     RETURN_IF_FAILED(CreatePixelShader());
 
     
-    DirectX::XMMATRIX world = DirectX::XMMatrixIdentity();
-    world = DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(45.0f));
+    CreateCameraMatrices(hwnd);
 
-    DirectX::XMVECTOR eye = DirectX::XMVectorSet(0.0f, 0.0f, -3.0f, 0.0f);
-    DirectX::XMVECTOR target = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-    DirectX::XMVECTOR up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-    DirectX::XMMATRIX view = DirectX::XMMatrixLookAtLH(eye, target, up);
+    DirectX::XMMATRIX world = DirectX::XMMatrixRotationY(
+            DirectX::XMConvertToRadians(rotationAngle));
+
+    UpdateMatrixBuffer(world);
+
+    RETURN_IF_FAILED(CreateDepthBuffer(hwnd));
+
+    lastTime = std::chrono::steady_clock::now();
+
+    return S_OK;
+}
+
+void Renderer::CreateCameraMatrices(HWND hwnd) {
+    DirectX::XMVECTOR eye =
+        DirectX::XMVectorSet(0.0f, 0.0f, -3.0f, 0.0f);
+
+    DirectX::XMVECTOR target =
+        DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+
+    DirectX::XMVECTOR up =
+        DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+    view = DirectX::XMMatrixLookAtLH(eye, target, up);
 
     RECT rect;
     GetClientRect(hwnd, &rect);
 
     float width = static_cast<float>(rect.right - rect.left);
     float height = static_cast<float>(rect.bottom - rect.top);
-
     float aspect = width / height;
-    DirectX::XMMATRIX projection = DirectX::XMMatrixPerspectiveFovLH(
-        DirectX::XMConvertToRadians(60.0f), aspect, 0.1f, 100.0f);
 
+    projection = DirectX::XMMatrixPerspectiveFovLH(
+        DirectX::XMConvertToRadians(60.0f),
+        aspect,
+        0.1f,
+        100.0f
+    );
+}
+
+void Renderer::UpdateMatrixBuffer(const DirectX::XMMATRIX& world) {
     MatrixBuffer matrixData;
-    matrixData.world = DirectX::XMMatrixTranspose(world);
-    matrixData.view = DirectX::XMMatrixTranspose(view);
-    matrixData.projection = DirectX::XMMatrixTranspose(projection);
-    context->UpdateSubresource(constantBuffer, 0, nullptr,
-        &matrixData, 0, 0);
 
-    return S_OK;
+    matrixData.world =
+        DirectX::XMMatrixTranspose(world);
+
+    matrixData.view =
+        DirectX::XMMatrixTranspose(view);
+
+    matrixData.projection =
+        DirectX::XMMatrixTranspose(projection);
+
+    context->UpdateSubresource(
+        constantBuffer,
+        0,
+        nullptr,
+        &matrixData,
+        0,
+        0
+    );
 }
 
 void Renderer::BindVertexStage() {
@@ -298,10 +338,71 @@ HRESULT Renderer::CreatePixelShader() {
     return S_OK;
 }
 
+HRESULT Renderer::CreateDepthBuffer(HWND hwnd)
+{
+    D3D11_TEXTURE2D_DESC depthDesc = {};
+
+    RECT rect;
+    GetClientRect(hwnd, &rect);
+    depthDesc.Width = rect.right - rect.left;
+    depthDesc.Height = rect.bottom - rect.top;
+    depthDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    depthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+    depthDesc.MipLevels = 1;
+    depthDesc.ArraySize = 1;
+    depthDesc.SampleDesc.Count = 1;
+    depthDesc.SampleDesc.Quality = 0;
+    depthDesc.Usage = D3D11_USAGE_DEFAULT;
+    depthDesc.CPUAccessFlags = 0;
+    depthDesc.MiscFlags = 0;
+
+    RETURN_IF_FAILED(device->CreateTexture2D(&depthDesc, nullptr, &depthBuffer));
+    
+    RETURN_IF_FAILED(device->CreateDepthStencilView(depthBuffer, nullptr, &depthStencilView));
+
+    context->OMSetRenderTargets(1, &renderTargetView, depthStencilView);
+
+    return S_OK;
+}
+
 void Renderer::Render() {
+    Update();
+    Clear();
+    Draw();
+
+    swapChain->Present(1, 0);
+}
+
+void Renderer::Update() {
+    auto currentTime = std::chrono::steady_clock::now();
+
+    std::chrono::duration<float> elapsed = currentTime - lastTime;
+    float deltaTime = elapsed.count();
+
+    lastTime = currentTime;
+
+    rotationAngle += 90.0f * deltaTime;
+    DirectX::XMMATRIX world = DirectX::XMMatrixRotationY(
+        DirectX::XMConvertToRadians(rotationAngle));
+
+    UpdateMatrixBuffer(world);
+}
+
+void Renderer::Clear()
+{
     float rgbaColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
     context->ClearRenderTargetView(renderTargetView, rgbaColor);
+
+    context->ClearDepthStencilView(
+        depthStencilView,
+        D3D11_CLEAR_DEPTH,
+        1.0f,
+        0
+    );
+}
+
+void Renderer::Draw()
+{
     context->DrawIndexed(36, 0, 0);
-    swapChain->Present(1, 0);
 }

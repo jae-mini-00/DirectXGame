@@ -2,6 +2,7 @@
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
+#include <chrono>
 
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "d3d11.lib")
@@ -62,6 +63,13 @@ private:
     ID3D11VertexShader* vertexShader;
     ID3D11PixelShader* pixelShader;
     ID3D11Buffer* constantBuffer;
+    ID3D11Texture2D* depthBuffer;
+    ID3D11DepthStencilView* depthStencilView;
+
+    float rotationAngle;
+    std::chrono::steady_clock::time_point lastTime;
+    DirectX::XMMATRIX view;
+    DirectX::XMMATRIX projection;
 
     void BindVertexStage();
     DXGI_SWAP_CHAIN_DESC CreateswapChainDescInfo(HWND hwnd);
@@ -74,4 +82,11 @@ private:
     HRESULT CreateVertexShader();
     HRESULT CreatePixelShader();
     HRESULT CreateConstantBuffer();
+    HRESULT CreateDepthBuffer(HWND hwnd);
+    
+    void CreateCameraMatrices(HWND hwnd);
+    void UpdateMatrixBuffer(const DirectX::XMMATRIX& world);
+    void Update();
+    void Clear();
+    void Draw();
 };
