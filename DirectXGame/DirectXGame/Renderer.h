@@ -1,40 +1,19 @@
+#pragma once
+
+#include "GameObject.h"
 #include <windows.h>
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
-#include <chrono>
 
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "d3d11.lib")
-
-#define RETURN_IF_FAILED(expr) \
-    do { \
-        HRESULT hr = (expr); \
-        if (FAILED(hr)) \
-            return hr; \
-    } while (0)
-
-#define RETURN_IF_FAILED_AND_RELEASE(expr, resource) \
-    do { \
-        HRESULT hr = (expr); \
-        if (FAILED(hr)) {\
-            if (resource)\
-                resource->Release();\
-            return hr; \
-            }\
-    } while (0)
 
 struct FeatureLevelInfo
 {
     D3D_FEATURE_LEVEL levels[1];
     UINT count;
     D3D_FEATURE_LEVEL selectedLevel;
-};
-
-struct Vertex
-{
-    float x, y, z;
-    float r, g, b, a;
 };
 
 struct MatrixBuffer
@@ -44,21 +23,21 @@ struct MatrixBuffer
     DirectX::XMMATRIX projection;
 };
 
-class Renderer
-{
+class Renderer {
 public:
     Renderer();
     ~Renderer();
 
     HRESULT Initialize(HWND hwnd);
-    void Render();
+    void BeginFrame();
+    void Draw(const GameObject& object);
+    void EndFrame();
+    ID3D11Device* GetDevice() const;
 private:
     ID3D11Device* device;
     ID3D11DeviceContext* context;
     IDXGISwapChain* swapChain;
     ID3D11RenderTargetView* renderTargetView;
-    ID3D11Buffer* vertexBuffer;
-    ID3D11Buffer* indexBuffer;
     ID3D11InputLayout* inputLayout;
     ID3D11VertexShader* vertexShader;
     ID3D11PixelShader* pixelShader;
@@ -66,8 +45,6 @@ private:
     ID3D11Texture2D* depthBuffer;
     ID3D11DepthStencilView* depthStencilView;
 
-    float rotationAngle;
-    std::chrono::steady_clock::time_point lastTime;
     DirectX::XMMATRIX view;
     DirectX::XMMATRIX projection;
 
@@ -76,17 +53,15 @@ private:
     FeatureLevelInfo CreateFeatureLevelInfo();
     D3D11_VIEWPORT CreateViewport(HWND hwnd);
     HRESULT CreateRenderTarget();
-    HRESULT CreateVertexBuffer(const Vertex* vertices, UINT count);
-    HRESULT CreateIndexBuffer(const unsigned int* indices, UINT count);
     HRESULT CreateInputLayout(ID3DBlob* shaderBlob);
     HRESULT CreateVertexShader();
     HRESULT CreatePixelShader();
     HRESULT CreateConstantBuffer();
     HRESULT CreateDepthBuffer(HWND hwnd);
-    
+    DirectX::XMMATRIX CreateTransform(const Transform& transform);
+
     void CreateCameraMatrices(HWND hwnd);
     void UpdateMatrixBuffer(const DirectX::XMMATRIX& world);
-    void Update();
+    void UpdateTransformBuffer(const Transform& transform);
     void Clear();
-    void Draw();
 };

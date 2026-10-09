@@ -1,9 +1,10 @@
 #include "Renderer.h"
+#include "DxUtils.h"
 
 Renderer::Renderer() : device(nullptr), context(nullptr), swapChain(nullptr), 
-renderTargetView(nullptr), vertexBuffer(nullptr), indexBuffer(nullptr),
-vertexShader(nullptr), pixelShader(nullptr), inputLayout(nullptr), constantBuffer(nullptr),
-depthBuffer(nullptr), depthStencilView(nullptr), rotationAngle(0.0f) {}
+renderTargetView(nullptr), vertexShader(nullptr), pixelShader(nullptr),
+inputLayout(nullptr), constantBuffer(nullptr), depthBuffer(nullptr), depthStencilView(nullptr) {}
+
 
 Renderer::~Renderer() {
     if (depthStencilView)
@@ -18,10 +19,6 @@ Renderer::~Renderer() {
         vertexShader->Release();
     if (inputLayout)
         inputLayout->Release();
-    if (indexBuffer)
-        indexBuffer->Release();
-    if (vertexBuffer)
-        vertexBuffer->Release();
     if (renderTargetView)
         renderTargetView->Release();
     if (swapChain)
@@ -53,45 +50,6 @@ HRESULT Renderer::Initialize(HWND hwnd) {
     D3D11_VIEWPORT viewport = CreateViewport(hwnd);
     context->RSSetViewports(1, &viewport);
 
-    Vertex vertices[8] = {
-        { -0.5f,  0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
-        {  0.5f,  0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
-        {  0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
-        { -0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
-        { -0.5f,  0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
-        {  0.5f,  0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f },
-        {  0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
-        { -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f }
-    };
-    unsigned int indices[36] = {
-        // z +
-        0, 1, 2,
-        0, 2, 3,
-
-        // 오른쪽 +X
-        1, 5, 6,
-        1, 6, 2,
-
-        // z -
-        4, 6, 5,
-        4, 7, 6,
-
-        // 왼쪽 -X
-        0, 3, 7,
-        0, 7, 4,
-
-        // 위 +Y
-        4, 5, 1,
-        4, 1, 0,
-
-        // 아래 -Y
-        3, 2, 6,
-        3, 6, 7
-    };
-
-    RETURN_IF_FAILED(CreateVertexBuffer(vertices, 8));
-    RETURN_IF_FAILED(CreateIndexBuffer(indices, 36));
-
 
     RETURN_IF_FAILED(CreateConstantBuffer());
 
@@ -101,14 +59,7 @@ HRESULT Renderer::Initialize(HWND hwnd) {
     
     CreateCameraMatrices(hwnd);
 
-    DirectX::XMMATRIX world = DirectX::XMMatrixRotationY(
-            DirectX::XMConvertToRadians(rotationAngle));
-
-    UpdateMatrixBuffer(world);
-
     RETURN_IF_FAILED(CreateDepthBuffer(hwnd));
-
-    lastTime = std::chrono::steady_clock::now();
 
     return S_OK;
 }
@@ -132,41 +83,11 @@ void Renderer::CreateCameraMatrices(HWND hwnd) {
     float height = static_cast<float>(rect.bottom - rect.top);
     float aspect = width / height;
 
-    projection = DirectX::XMMatrixPerspectiveFovLH(
-        DirectX::XMConvertToRadians(60.0f),
-        aspect,
-        0.1f,
-        100.0f
-    );
-}
-
-void Renderer::UpdateMatrixBuffer(const DirectX::XMMATRIX& world) {
-    MatrixBuffer matrixData;
-
-    matrixData.world =
-        DirectX::XMMatrixTranspose(world);
-
-    matrixData.view =
-        DirectX::XMMatrixTranspose(view);
-
-    matrixData.projection =
-        DirectX::XMMatrixTranspose(projection);
-
-    context->UpdateSubresource(
-        constantBuffer,
-        0,
-        nullptr,
-        &matrixData,
-        0,
-        0
-    );
+    projection = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(60.0f),
+        aspect, 0.1f, 100.0f);
 }
 
 void Renderer::BindVertexStage() {
-    UINT offset = 0;
-    UINT stride = sizeof(Vertex);
-    context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
-    context->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     context->IASetInputLayout(inputLayout);
     context->VSSetShader(vertexShader, nullptr, 0);
@@ -208,7 +129,8 @@ HRESULT Renderer::CreateRenderTarget() {
     ID3D11Texture2D* backBuffer = nullptr;
     RETURN_IF_FAILED(swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&backBuffer)));
 
-    RETURN_IF_FAILED_AND_RELEASE(device->CreateRenderTargetView(backBuffer, nullptr, &renderTargetView), backBuffer);
+    RETURN_IF_FAILED_AND_RELEASE(device->CreateRenderTargetView(backBuffer, nullptr, 
+        &renderTargetView), backBuffer);
     backBuffer->Release();
     context->OMSetRenderTargets(1, &renderTargetView, nullptr);
 
@@ -222,40 +144,6 @@ FeatureLevelInfo Renderer::CreateFeatureLevelInfo() {
     Info.count = 1;
 
     return Info;
-}
-
-HRESULT Renderer::CreateVertexBuffer(const Vertex *vertices, UINT count) {
-    D3D11_BUFFER_DESC bufferDesc = {};
-    D3D11_SUBRESOURCE_DATA initData = {};
-
-    initData.pSysMem = vertices;
-    bufferDesc.ByteWidth = sizeof(Vertex) * count;
-    bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-    bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-    bufferDesc.CPUAccessFlags = 0;
-    bufferDesc.MiscFlags = 0;
-    bufferDesc.StructureByteStride = 0;
-
-    RETURN_IF_FAILED(device->CreateBuffer(&bufferDesc, &initData, &vertexBuffer));
-
-    return S_OK;
-}
-
-HRESULT Renderer::CreateIndexBuffer(const unsigned int* indices, UINT count) {
-    D3D11_BUFFER_DESC bufferDesc = {};
-    D3D11_SUBRESOURCE_DATA initData = {};
-
-    initData.pSysMem = indices;
-    bufferDesc.ByteWidth = sizeof(unsigned int) * count;
-    bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-    bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-    bufferDesc.CPUAccessFlags = 0;
-    bufferDesc.MiscFlags = 0;
-    bufferDesc.StructureByteStride = 0;
-
-    RETURN_IF_FAILED(device->CreateBuffer(&bufferDesc, &initData, &indexBuffer));
-
-    return S_OK;
 }
 
 HRESULT Renderer::CreateConstantBuffer() {
@@ -338,8 +226,7 @@ HRESULT Renderer::CreatePixelShader() {
     return S_OK;
 }
 
-HRESULT Renderer::CreateDepthBuffer(HWND hwnd)
-{
+HRESULT Renderer::CreateDepthBuffer(HWND hwnd) {
     D3D11_TEXTURE2D_DESC depthDesc = {};
 
     RECT rect;
@@ -365,44 +252,72 @@ HRESULT Renderer::CreateDepthBuffer(HWND hwnd)
     return S_OK;
 }
 
-void Renderer::Render() {
-    Update();
-    Clear();
-    Draw();
+DirectX::XMMATRIX Renderer::CreateTransform(const Transform& transform) {
+    DirectX::XMMATRIX scale =
+        DirectX::XMMatrixScaling(transform.scale.x,
+            transform.scale.y, transform.scale.z);
+    DirectX::XMMATRIX rotation =
+        DirectX::XMMatrixRotationRollPitchYaw(
+            DirectX::XMConvertToRadians(transform.rotation.x),
+            DirectX::XMConvertToRadians(transform.rotation.y),
+            DirectX::XMConvertToRadians(transform.rotation.z));
+    DirectX::XMMATRIX translation =
+        DirectX::XMMatrixTranslation(transform.position.x,
+            transform.position.y, transform.position.z);
 
-    swapChain->Present(1, 0);
+    return scale * rotation * translation;
 }
 
-void Renderer::Update() {
-    auto currentTime = std::chrono::steady_clock::now();
+void Renderer::UpdateMatrixBuffer(const DirectX::XMMATRIX& world) {
+    MatrixBuffer matrixData = {};
 
-    std::chrono::duration<float> elapsed = currentTime - lastTime;
-    float deltaTime = elapsed.count();
+    matrixData.world =
+        DirectX::XMMatrixTranspose(world);
 
-    lastTime = currentTime;
+    matrixData.view =
+        DirectX::XMMatrixTranspose(view);
 
-    rotationAngle += 90.0f * deltaTime;
-    DirectX::XMMATRIX world = DirectX::XMMatrixRotationY(
-        DirectX::XMConvertToRadians(rotationAngle));
+    matrixData.projection =
+        DirectX::XMMatrixTranspose(projection);
+
+    context->UpdateSubresource(constantBuffer, 0, nullptr,
+        &matrixData, 0, 0);
+}
+
+void Renderer::UpdateTransformBuffer(const Transform& transform) {
+    DirectX::XMMATRIX world = CreateTransform(transform);
 
     UpdateMatrixBuffer(world);
 }
 
-void Renderer::Clear()
-{
+void Renderer::Clear() {
     float rgbaColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
     context->ClearRenderTargetView(renderTargetView, rgbaColor);
 
-    context->ClearDepthStencilView(
-        depthStencilView,
-        D3D11_CLEAR_DEPTH,
-        1.0f,
-        0
-    );
+    context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 }
 
-void Renderer::Draw()
+void Renderer::BeginFrame()
 {
-    context->DrawIndexed(36, 0, 0);
+    Clear();
 }
+
+void Renderer::Draw(const GameObject& object) {
+    UpdateTransformBuffer(object.transform);
+
+    UINT offset = 0;
+    UINT stride = sizeof(Vertex);
+    ID3D11Buffer* vertexBuffer =
+        object.mesh.GetVertexBuffer();
+
+    context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+    context->IASetIndexBuffer(object.mesh.GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
+    context->DrawIndexed(object.mesh.GetIndexCount(), 0, 0);
+}
+
+void Renderer::EndFrame() {
+    swapChain->Present(1, 0);
+}
+
+ID3D11Device* Renderer::GetDevice() const { return device; }

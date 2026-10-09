@@ -1,5 +1,5 @@
 #include "Renderer.h"
-
+#include <chrono>
 
 LRESULT CALLBACK WindowProc(
     HWND hwnd,
@@ -67,6 +67,72 @@ int WINAPI WinMain(
 
     MSG msg = {};
 
+    GameObject cube;
+
+    Vertex vertices[8] = {
+        // +Z
+        { -0.5f,  0.5f,  0.5f, 0.0f, 0.8f, 1.0f, 1.0f }, // 0 Ã»·Ï
+        {  0.5f,  0.5f,  0.5f, 1.0f, 0.85f, 0.0f, 1.0f }, // 1 ³ë¶û
+
+        {  0.5f, -0.5f,  0.5f, 1.0f, 0.85f, 0.0f, 1.0f }, // 2 ³ë¶û
+        { -0.5f, -0.5f,  0.5f, 0.0f, 0.8f, 1.0f, 1.0f }, // 3 Ã»·Ï
+
+        // -Z
+        { -0.5f,  0.5f, -0.5f, 0.35f, 0.0f, 1.0f, 1.0f }, // 4 º¸¶ó
+        {  0.5f,  0.5f, -0.5f, 1.0f, 0.0f, 0.25f, 1.0f }, // 5 »¡°­/ÇÎÅ©
+
+        {  0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.25f, 1.0f }, // 6 »¡°­/ÇÎÅ©
+        { -0.5f, -0.5f, -0.5f, 0.35f, 0.0f, 1.0f, 1.0f }  // 7 º¸¶ó
+    };
+
+    unsigned int indices[36] = {
+        // +Z
+        0, 2, 1,
+        0, 3, 2,
+
+        // +X
+        1, 6, 5,
+        1, 2, 6,
+
+        // -Z
+        4, 5, 6,
+        4, 6, 7,
+
+        // -X
+        0, 7, 3,
+        0, 4, 7,
+
+        // +Y
+        4, 1, 5,
+        4, 0, 1,
+
+        // -Y
+        3, 6, 2,
+        3, 7, 6
+    };
+
+    HRESULT meshHr = cube.mesh.Initialize(
+        renderer.GetDevice(),
+        vertices,
+        8,
+        indices,
+        36
+    );
+
+    if (FAILED(meshHr))
+    {
+        MessageBox(
+            hwnd,
+            L"Mesh Initialize Failed",
+            L"Error",
+            MB_OK
+        );
+
+        return 0;
+    }
+    cube.transform.rotation.x = 30.0f;
+    cube.transform.rotation.y = 45.0f;
+    auto lastTime = std::chrono::steady_clock::now();
     while (msg.message != WM_QUIT)
     {
         if (PeekMessage(
@@ -81,7 +147,21 @@ int WINAPI WinMain(
         }
         else
         {
-            renderer.Render();
+            auto currentTime = std::chrono::steady_clock::now();
+
+            std::chrono::duration<float> elapsed =
+                currentTime - lastTime;
+
+            float deltaTime = elapsed.count();
+
+            lastTime = currentTime;
+
+            cube.transform.rotation.y += 90.0f * deltaTime;
+            renderer.BeginFrame();
+
+            renderer.Draw(cube);
+
+            renderer.EndFrame();
         }
     }
 
