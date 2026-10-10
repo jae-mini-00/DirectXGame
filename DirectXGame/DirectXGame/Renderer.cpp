@@ -1,12 +1,24 @@
 #include "Renderer.h"
+#include "GameObject.h"
 #include "DxUtils.h"
+#include "Camera.h"
+
+#include <directxtk/WICTextureLoader.h>
+
+#pragma comment(lib, "d3dcompiler.lib")
+#pragma comment(lib, "d3d11.lib")
 
 Renderer::Renderer() : device(nullptr), context(nullptr), swapChain(nullptr), 
 renderTargetView(nullptr), vertexShader(nullptr), pixelShader(nullptr),
-inputLayout(nullptr), constantBuffer(nullptr), depthBuffer(nullptr), depthStencilView(nullptr) {}
+inputLayout(nullptr), constantBuffer(nullptr), depthBuffer(nullptr), 
+depthStencilView(nullptr), textureView(nullptr), samplerState(nullptr) {}
 
 
 Renderer::~Renderer() {
+    if (samplerState)
+        samplerState->Release();
+    if (textureView)
+        textureView->Release();
     if (depthStencilView)
         depthStencilView->Release();
     if (depthBuffer)
@@ -54,38 +66,15 @@ HRESULT Renderer::Initialize(HWND hwnd) {
     RETURN_IF_FAILED(CreateConstantBuffer());
 
     RETURN_IF_FAILED(CreateVertexShader());
+    RETURN_IF_FAILED(CreateTexture());
+    RETURN_IF_FAILED(CreateSamplerState());
     RETURN_IF_FAILED(CreatePixelShader());
-
-    
-    CreateCameraMatrices(hwnd);
 
     RETURN_IF_FAILED(CreateDepthBuffer(hwnd));
 
     return S_OK;
 }
 
-void Renderer::CreateCameraMatrices(HWND hwnd) {
-    DirectX::XMVECTOR eye =
-        DirectX::XMVectorSet(0.0f, 0.0f, -3.0f, 0.0f);
-
-    DirectX::XMVECTOR target =
-        DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-
-    DirectX::XMVECTOR up =
-        DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
-    view = DirectX::XMMatrixLookAtLH(eye, target, up);
-
-    RECT rect;
-    GetClientRect(hwnd, &rect);
-
-    float width = static_cast<float>(rect.right - rect.left);
-    float height = static_cast<float>(rect.bottom - rect.top);
-    float aspect = width / height;
-
-    projection = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(60.0f),
-        aspect, 0.1f, 100.0f);
-}
 
 void Renderer::BindVertexStage() {
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -162,24 +151,33 @@ HRESULT Renderer::CreateConstantBuffer() {
 }
 
 HRESULT Renderer::CreateInputLayout(ID3DBlob* shaderBlob) {
-    D3D11_INPUT_ELEMENT_DESC layout[2] = {};
+    D3D11_INPUT_ELEMENT_DESC layout[3] = {};
 
     layout[0].SemanticName = "POSITION";
     layout[0].SemanticIndex = 0;
     layout[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
     layout[0].InputSlot = 0;
-    layout[0].AlignedByteOffset = 0;
+    layout[0].AlignedByteOffset = offsetof(Vertex, x);
     layout[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
     layout[0].InstanceDataStepRate = 0;
+
     layout[1].SemanticName = "COLOR";
     layout[1].SemanticIndex = 0;
     layout[1].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
     layout[1].InputSlot = 0;
-    layout[1].AlignedByteOffset = 12;
+    layout[1].AlignedByteOffset = offsetof(Vertex, r);
     layout[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
     layout[1].InstanceDataStepRate = 0;
 
-    RETURN_IF_FAILED(device->CreateInputLayout(layout, 2, shaderBlob->GetBufferPointer(), 
+    layout[2].SemanticName = "TEXCOORD";
+    layout[2].SemanticIndex = 0;
+    layout[2].Format = DXGI_FORMAT_R32G32_FLOAT;
+    layout[2].InputSlot = 0;
+    layout[2].AlignedByteOffset = offsetof(Vertex, u);
+    layout[2].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+    layout[2].InstanceDataStepRate = 0;
+
+    RETURN_IF_FAILED(device->CreateInputLayout(layout, 3, shaderBlob->GetBufferPointer(), 
         shaderBlob->GetBufferSize(), &inputLayout));
 
 
@@ -268,26 +266,50 @@ DirectX::XMMATRIX Renderer::CreateTransform(const Transform& transform) {
     return scale * rotation * translation;
 }
 
-void Renderer::UpdateMatrixBuffer(const DirectX::XMMATRIX& world) {
+HRESULT Renderer::CreateSamplerState() {
+    D3D11_SAMPLER_DESC samplerDesc = {};
+
+    samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+    samplerDesc.MinLOD = 0;
+    samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+    RETURN_IF_FAILED(device->CreateSamplerState(&samplerDesc, &samplerState));
+    context->PSSetSamplers(0, 1, &samplerState);
+
+    return S_OK;
+}
+
+HRESULT Renderer::CreateTexture() {
+    RETURN_IF_FAILED(DirectX::CreateWICTextureFromFile(
+        device, context, L"texture.png", nullptr, &textureView));
+    context->PSSetShaderResources(0, 1, &textureView);
+
+    return S_OK;
+}
+
+void Renderer::UpdateMatrixBuffer(const DirectX::XMMATRIX& world, const Camera& camera) {
     MatrixBuffer matrixData = {};
 
     matrixData.world =
         DirectX::XMMatrixTranspose(world);
 
     matrixData.view =
-        DirectX::XMMatrixTranspose(view);
+        DirectX::XMMatrixTranspose(camera.GetView());
 
     matrixData.projection =
-        DirectX::XMMatrixTranspose(projection);
+        DirectX::XMMatrixTranspose(camera.GetProjection());
 
     context->UpdateSubresource(constantBuffer, 0, nullptr,
         &matrixData, 0, 0);
 }
 
-void Renderer::UpdateTransformBuffer(const Transform& transform) {
+void Renderer::UpdateTransformBuffer(const Transform& transform, const Camera& camera) {
     DirectX::XMMATRIX world = CreateTransform(transform);
 
-    UpdateMatrixBuffer(world);
+    UpdateMatrixBuffer(world, camera);
 }
 
 void Renderer::Clear() {
@@ -303,8 +325,8 @@ void Renderer::BeginFrame()
     Clear();
 }
 
-void Renderer::Draw(const GameObject& object) {
-    UpdateTransformBuffer(object.transform);
+void Renderer::Draw(const GameObject& object, const Camera& camera) {
+    UpdateTransformBuffer(object.transform, camera);
 
     UINT offset = 0;
     UINT stride = sizeof(Vertex);

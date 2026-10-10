@@ -1,13 +1,14 @@
 #pragma once
 
-#include "GameObject.h"
 #include <windows.h>
 #include <d3d11.h>
-#include <d3dcompiler.h>
 #include <DirectXMath.h>
+#include <d3dcompiler.h>
 
-#pragma comment(lib, "d3dcompiler.lib")
-#pragma comment(lib, "d3d11.lib")
+class Camera;
+class GameObject;
+struct Transform;
+
 
 struct FeatureLevelInfo
 {
@@ -30,7 +31,7 @@ public:
 
     HRESULT Initialize(HWND hwnd);
     void BeginFrame();
-    void Draw(const GameObject& object);
+    void Draw(const GameObject& object, const Camera& camera);
     void EndFrame();
     ID3D11Device* GetDevice() const;
 private:
@@ -44,9 +45,9 @@ private:
     ID3D11Buffer* constantBuffer;
     ID3D11Texture2D* depthBuffer;
     ID3D11DepthStencilView* depthStencilView;
+    ID3D11ShaderResourceView* textureView;
+    ID3D11SamplerState* samplerState;
 
-    DirectX::XMMATRIX view;
-    DirectX::XMMATRIX projection;
 
     void BindVertexStage();
     DXGI_SWAP_CHAIN_DESC CreateswapChainDescInfo(HWND hwnd);
@@ -59,9 +60,10 @@ private:
     HRESULT CreateConstantBuffer();
     HRESULT CreateDepthBuffer(HWND hwnd);
     DirectX::XMMATRIX CreateTransform(const Transform& transform);
+    HRESULT CreateSamplerState();
+    HRESULT CreateTexture();
 
-    void CreateCameraMatrices(HWND hwnd);
-    void UpdateMatrixBuffer(const DirectX::XMMATRIX& world);
-    void UpdateTransformBuffer(const Transform& transform);
+    void UpdateMatrixBuffer(const DirectX::XMMATRIX& world, const Camera& camera);
+    void UpdateTransformBuffer(const Transform& transform, const Camera& camera);
     void Clear();
 };

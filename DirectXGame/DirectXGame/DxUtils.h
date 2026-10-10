@@ -1,5 +1,7 @@
 #pragma once
 
+#include <windows.h>
+
 #define RETURN_IF_FAILED(expr) \
     do { \
         HRESULT hr = (expr); \
