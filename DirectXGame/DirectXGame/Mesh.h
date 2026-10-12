@@ -1,14 +1,24 @@
 #pragma once
 
 #include <d3d11.h>
+#include <vector>
 
-struct Vertex {
+struct Vertex
+{
     float x, y, z;
     float r, g, b, a;
     float u, v;
+    float nx, ny, nz;
 };
 
-class Mesh {
+struct MeshData
+{
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
+};
+
+class Mesh
+{
     public:
         Mesh();
         ~Mesh();

@@ -19,7 +19,8 @@ ID3D11Buffer* Mesh::GetIndexBuffer() const { return indexBuffer; }
 UINT Mesh::GetIndexCount() const { return indexCount; }
 
 HRESULT Mesh::Initialize(ID3D11Device* device, const Vertex* vertices, UINT vertexCount,
-    const unsigned int* indices, UINT indexCount) {
+    const unsigned int* indices, UINT indexCount) 
+{
     RETURN_IF_FAILED(CreateVertexBuffer(device, vertices, vertexCount));
     RETURN_IF_FAILED_AND_RELEASE(CreateIndexBuffer(device, indices, indexCount), vertexBuffer);
     this->indexCount = indexCount;
@@ -28,7 +29,8 @@ HRESULT Mesh::Initialize(ID3D11Device* device, const Vertex* vertices, UINT vert
 }
 
 
-HRESULT Mesh::CreateVertexBuffer(ID3D11Device* device, const Vertex* vertices, UINT count) {
+HRESULT Mesh::CreateVertexBuffer(ID3D11Device* device, const Vertex* vertices, UINT count)
+{
     D3D11_BUFFER_DESC bufferDesc = {};
     D3D11_SUBRESOURCE_DATA initData = {};
 
@@ -45,7 +47,8 @@ HRESULT Mesh::CreateVertexBuffer(ID3D11Device* device, const Vertex* vertices, U
     return S_OK;
 }
 
-HRESULT Mesh::CreateIndexBuffer(ID3D11Device* device, const unsigned int* indices, UINT count) {
+HRESULT Mesh::CreateIndexBuffer(ID3D11Device* device, const unsigned int* indices, UINT count)
+{
     D3D11_BUFFER_DESC bufferDesc = {};
     D3D11_SUBRESOURCE_DATA initData = {};
 

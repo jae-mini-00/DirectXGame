@@ -4,7 +4,8 @@
 
 #include <chrono>
 
-LRESULT CALLBACK WindowProc(
+LRESULT CALLBACK WindowProc
+(
     HWND hwnd,
     UINT msg,
     WPARAM wParam,
@@ -20,7 +21,8 @@ LRESULT CALLBACK WindowProc(
     return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
-int WINAPI WinMain(
+int WINAPI WinMain
+(
     HINSTANCE hInstance,
     HINSTANCE,
     LPSTR,

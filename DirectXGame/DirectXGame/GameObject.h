@@ -10,7 +10,8 @@ struct Transform
     DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
 };
 
-class GameObject {
+class GameObject
+{
     public :
         Transform transform;
         Mesh mesh;

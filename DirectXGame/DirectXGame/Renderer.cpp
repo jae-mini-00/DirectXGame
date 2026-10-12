@@ -14,7 +14,8 @@ inputLayout(nullptr), constantBuffer(nullptr), depthBuffer(nullptr),
 depthStencilView(nullptr), textureView(nullptr), samplerState(nullptr) {}
 
 
-Renderer::~Renderer() {
+Renderer::~Renderer()
+{
     if (samplerState)
         samplerState->Release();
     if (textureView)
@@ -41,7 +42,8 @@ Renderer::~Renderer() {
         device->Release();
 }
 
-HRESULT Renderer::Initialize(HWND hwnd) {
+HRESULT Renderer::Initialize(HWND hwnd)
+{
     IDXGIAdapter* pAdapter = nullptr;
     D3D_DRIVER_TYPE DriverType = D3D_DRIVER_TYPE_HARDWARE;
     HMODULE Software = nullptr;
@@ -76,14 +78,16 @@ HRESULT Renderer::Initialize(HWND hwnd) {
 }
 
 
-void Renderer::BindVertexStage() {
+void Renderer::BindVertexStage()
+{
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     context->IASetInputLayout(inputLayout);
     context->VSSetShader(vertexShader, nullptr, 0);
     context->VSSetConstantBuffers(0, 1, &constantBuffer);
 }
 
-D3D11_VIEWPORT Renderer::CreateViewport(HWND hwnd) {
+D3D11_VIEWPORT Renderer::CreateViewport(HWND hwnd)
+{
     D3D11_VIEWPORT viewport = {};
     RECT rect;
 
@@ -96,7 +100,8 @@ D3D11_VIEWPORT Renderer::CreateViewport(HWND hwnd) {
     return viewport;
 }
 
-DXGI_SWAP_CHAIN_DESC Renderer::CreateswapChainDescInfo(HWND hwnd) {
+DXGI_SWAP_CHAIN_DESC Renderer::CreateswapChainDescInfo(HWND hwnd)
+{
     RECT rect;
     DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
 
@@ -114,7 +119,8 @@ DXGI_SWAP_CHAIN_DESC Renderer::CreateswapChainDescInfo(HWND hwnd) {
     return swapChainDesc;
 }
 
-HRESULT Renderer::CreateRenderTarget() {
+HRESULT Renderer::CreateRenderTarget()
+{
     ID3D11Texture2D* backBuffer = nullptr;
     RETURN_IF_FAILED(swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&backBuffer)));
 
@@ -126,7 +132,8 @@ HRESULT Renderer::CreateRenderTarget() {
     return S_OK;
 }
 
-FeatureLevelInfo Renderer::CreateFeatureLevelInfo() {
+FeatureLevelInfo Renderer::CreateFeatureLevelInfo()
+{
     FeatureLevelInfo Info = {};
 
     Info.levels[0] = D3D_FEATURE_LEVEL_11_0;
@@ -135,7 +142,8 @@ FeatureLevelInfo Renderer::CreateFeatureLevelInfo() {
     return Info;
 }
 
-HRESULT Renderer::CreateConstantBuffer() {
+HRESULT Renderer::CreateConstantBuffer()
+{
     D3D11_BUFFER_DESC bufferDesc = {};
 
     bufferDesc.ByteWidth = sizeof(MatrixBuffer);
@@ -150,7 +158,8 @@ HRESULT Renderer::CreateConstantBuffer() {
     return S_OK;
 }
 
-HRESULT Renderer::CreateInputLayout(ID3DBlob* shaderBlob) {
+HRESULT Renderer::CreateInputLayout(ID3DBlob* shaderBlob)
+{
     D3D11_INPUT_ELEMENT_DESC layout[3] = {};
 
     layout[0].SemanticName = "POSITION";
@@ -184,7 +193,8 @@ HRESULT Renderer::CreateInputLayout(ID3DBlob* shaderBlob) {
     return S_OK;
 }
 
-HRESULT Renderer::CreateVertexShader() {
+HRESULT Renderer::CreateVertexShader()
+{
     ID3DBlob* errorBlob = nullptr;
     ID3DBlob* shaderBlob = nullptr;
     RETURN_IF_FAILED_AND_RELEASE(D3DCompileFromFile(L"VertexShader.hlsl", nullptr,
@@ -206,7 +216,8 @@ HRESULT Renderer::CreateVertexShader() {
 }
 
 
-HRESULT Renderer::CreatePixelShader() {
+HRESULT Renderer::CreatePixelShader()
+{
     ID3DBlob* errorBlob = nullptr;
     ID3DBlob* shaderBlob = nullptr;
     RETURN_IF_FAILED_AND_RELEASE(D3DCompileFromFile(L"PixelShader.hlsl", nullptr,
@@ -224,7 +235,8 @@ HRESULT Renderer::CreatePixelShader() {
     return S_OK;
 }
 
-HRESULT Renderer::CreateDepthBuffer(HWND hwnd) {
+HRESULT Renderer::CreateDepthBuffer(HWND hwnd)
+{
     D3D11_TEXTURE2D_DESC depthDesc = {};
 
     RECT rect;
@@ -250,7 +262,8 @@ HRESULT Renderer::CreateDepthBuffer(HWND hwnd) {
     return S_OK;
 }
 
-DirectX::XMMATRIX Renderer::CreateTransform(const Transform& transform) {
+DirectX::XMMATRIX Renderer::CreateTransform(const Transform& transform)
+{
     DirectX::XMMATRIX scale =
         DirectX::XMMatrixScaling(transform.scale.x,
             transform.scale.y, transform.scale.z);
@@ -266,7 +279,8 @@ DirectX::XMMATRIX Renderer::CreateTransform(const Transform& transform) {
     return scale * rotation * translation;
 }
 
-HRESULT Renderer::CreateSamplerState() {
+HRESULT Renderer::CreateSamplerState()
+{
     D3D11_SAMPLER_DESC samplerDesc = {};
 
     samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -282,7 +296,8 @@ HRESULT Renderer::CreateSamplerState() {
     return S_OK;
 }
 
-HRESULT Renderer::CreateTexture() {
+HRESULT Renderer::CreateTexture()
+{
     RETURN_IF_FAILED(DirectX::CreateWICTextureFromFile(
         device, context, L"texture.png", nullptr, &textureView));
     context->PSSetShaderResources(0, 1, &textureView);
@@ -290,7 +305,8 @@ HRESULT Renderer::CreateTexture() {
     return S_OK;
 }
 
-void Renderer::UpdateMatrixBuffer(const DirectX::XMMATRIX& world, const Camera& camera) {
+void Renderer::UpdateMatrixBuffer(const DirectX::XMMATRIX& world, const Camera& camera)
+{
     MatrixBuffer matrixData = {};
 
     matrixData.world =
@@ -306,7 +322,8 @@ void Renderer::UpdateMatrixBuffer(const DirectX::XMMATRIX& world, const Camera& 
         &matrixData, 0, 0);
 }
 
-void Renderer::UpdateTransformBuffer(const Transform& transform, const Camera& camera) {
+void Renderer::UpdateTransformBuffer(const Transform& transform, const Camera& camera)
+{
     DirectX::XMMATRIX world = CreateTransform(transform);
 
     UpdateMatrixBuffer(world, camera);
@@ -325,7 +342,8 @@ void Renderer::BeginFrame()
     Clear();
 }
 
-void Renderer::Draw(const GameObject& object, const Camera& camera) {
+void Renderer::Draw(const GameObject& object, const Camera& camera)
+{
     UpdateTransformBuffer(object.transform, camera);
 
     UINT offset = 0;
@@ -338,7 +356,8 @@ void Renderer::Draw(const GameObject& object, const Camera& camera) {
     context->DrawIndexed(object.mesh.GetIndexCount(), 0, 0);
 }
 
-void Renderer::EndFrame() {
+void Renderer::EndFrame()
+{
     swapChain->Present(1, 0);
 }
 
