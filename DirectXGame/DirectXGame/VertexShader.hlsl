@@ -8,14 +8,12 @@ cbuffer MatrixBuffer : register(b0)
 struct VSInput
 {
     float3 position : POSITION;
-    float4 color : COLOR;
     float2 uv : TEXCOORD;
 };
 
 struct VSOutput
 {
     float4 position : SV_POSITION;
-    float4 color : COLOR;
     float2 uv : TEXCOORD;
 };
 
@@ -30,7 +28,6 @@ VSOutput main(VSInput input)
     position = mul(position, projection);
 
     output.position = position;
-    output.color = input.color;
     output.uv = input.uv;
 
     return output;

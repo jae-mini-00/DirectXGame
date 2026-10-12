@@ -4,13 +4,13 @@
 
 class Camera
 {
-public:
-    Camera(float width, float height);
+    public:
+        Camera(float width, float height);
 
-    const DirectX::XMMATRIX& GetView() const;
-    const DirectX::XMMATRIX& GetProjection() const;
+        const DirectX::XMMATRIX& GetView() const;
+        const DirectX::XMMATRIX& GetProjection() const;
 
-private:
-    DirectX::XMMATRIX view;
-    DirectX::XMMATRIX projection;
+    private:
+        DirectX::XMMATRIX view;
+        DirectX::XMMATRIX projection;
 };

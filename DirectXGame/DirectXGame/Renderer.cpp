@@ -3,23 +3,20 @@
 #include "DxUtils.h"
 #include "Camera.h"
 
-#include <directxtk/WICTextureLoader.h>
-
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "d3d11.lib")
+
+ID3D11Device* Renderer::GetDevice() const { return device; }
+ID3D11DeviceContext* Renderer::GetContext() const { return context; }
 
 Renderer::Renderer() : device(nullptr), context(nullptr), swapChain(nullptr), 
 renderTargetView(nullptr), vertexShader(nullptr), pixelShader(nullptr),
 inputLayout(nullptr), constantBuffer(nullptr), depthBuffer(nullptr), 
-depthStencilView(nullptr), textureView(nullptr), samplerState(nullptr) {}
+depthStencilView(nullptr) {}
 
 
 Renderer::~Renderer()
 {
-    if (samplerState)
-        samplerState->Release();
-    if (textureView)
-        textureView->Release();
     if (depthStencilView)
         depthStencilView->Release();
     if (depthBuffer)
@@ -68,8 +65,6 @@ HRESULT Renderer::Initialize(HWND hwnd)
     RETURN_IF_FAILED(CreateConstantBuffer());
 
     RETURN_IF_FAILED(CreateVertexShader());
-    RETURN_IF_FAILED(CreateTexture());
-    RETURN_IF_FAILED(CreateSamplerState());
     RETURN_IF_FAILED(CreatePixelShader());
 
     RETURN_IF_FAILED(CreateDepthBuffer(hwnd));
@@ -160,7 +155,7 @@ HRESULT Renderer::CreateConstantBuffer()
 
 HRESULT Renderer::CreateInputLayout(ID3DBlob* shaderBlob)
 {
-    D3D11_INPUT_ELEMENT_DESC layout[3] = {};
+    D3D11_INPUT_ELEMENT_DESC layout[2] = {};
 
     layout[0].SemanticName = "POSITION";
     layout[0].SemanticIndex = 0;
@@ -170,23 +165,15 @@ HRESULT Renderer::CreateInputLayout(ID3DBlob* shaderBlob)
     layout[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
     layout[0].InstanceDataStepRate = 0;
 
-    layout[1].SemanticName = "COLOR";
+    layout[1].SemanticName = "TEXCOORD";
     layout[1].SemanticIndex = 0;
-    layout[1].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    layout[1].Format = DXGI_FORMAT_R32G32_FLOAT;
     layout[1].InputSlot = 0;
-    layout[1].AlignedByteOffset = offsetof(Vertex, r);
+    layout[1].AlignedByteOffset = offsetof(Vertex, u);
     layout[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
     layout[1].InstanceDataStepRate = 0;
 
-    layout[2].SemanticName = "TEXCOORD";
-    layout[2].SemanticIndex = 0;
-    layout[2].Format = DXGI_FORMAT_R32G32_FLOAT;
-    layout[2].InputSlot = 0;
-    layout[2].AlignedByteOffset = offsetof(Vertex, u);
-    layout[2].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-    layout[2].InstanceDataStepRate = 0;
-
-    RETURN_IF_FAILED(device->CreateInputLayout(layout, 3, shaderBlob->GetBufferPointer(), 
+    RETURN_IF_FAILED(device->CreateInputLayout(layout, 2, shaderBlob->GetBufferPointer(), 
         shaderBlob->GetBufferSize(), &inputLayout));
 
 
@@ -262,49 +249,6 @@ HRESULT Renderer::CreateDepthBuffer(HWND hwnd)
     return S_OK;
 }
 
-DirectX::XMMATRIX Renderer::CreateTransform(const Transform& transform)
-{
-    DirectX::XMMATRIX scale =
-        DirectX::XMMatrixScaling(transform.scale.x,
-            transform.scale.y, transform.scale.z);
-    DirectX::XMMATRIX rotation =
-        DirectX::XMMatrixRotationRollPitchYaw(
-            DirectX::XMConvertToRadians(transform.rotation.x),
-            DirectX::XMConvertToRadians(transform.rotation.y),
-            DirectX::XMConvertToRadians(transform.rotation.z));
-    DirectX::XMMATRIX translation =
-        DirectX::XMMatrixTranslation(transform.position.x,
-            transform.position.y, transform.position.z);
-
-    return scale * rotation * translation;
-}
-
-HRESULT Renderer::CreateSamplerState()
-{
-    D3D11_SAMPLER_DESC samplerDesc = {};
-
-    samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-    samplerDesc.MinLOD = 0;
-    samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
-
-    RETURN_IF_FAILED(device->CreateSamplerState(&samplerDesc, &samplerState));
-    context->PSSetSamplers(0, 1, &samplerState);
-
-    return S_OK;
-}
-
-HRESULT Renderer::CreateTexture()
-{
-    RETURN_IF_FAILED(DirectX::CreateWICTextureFromFile(
-        device, context, L"texture.png", nullptr, &textureView));
-    context->PSSetShaderResources(0, 1, &textureView);
-
-    return S_OK;
-}
-
 void Renderer::UpdateMatrixBuffer(const DirectX::XMMATRIX& world, const Camera& camera)
 {
     MatrixBuffer matrixData = {};
@@ -324,9 +268,19 @@ void Renderer::UpdateMatrixBuffer(const DirectX::XMMATRIX& world, const Camera& 
 
 void Renderer::UpdateTransformBuffer(const Transform& transform, const Camera& camera)
 {
-    DirectX::XMMATRIX world = CreateTransform(transform);
+    DirectX::XMMATRIX scale =
+        DirectX::XMMatrixScaling(transform.scale.x,
+            transform.scale.y, transform.scale.z);
+    DirectX::XMMATRIX rotation =
+        DirectX::XMMatrixRotationRollPitchYaw(
+            DirectX::XMConvertToRadians(transform.rotation.x),
+            DirectX::XMConvertToRadians(transform.rotation.y),
+            DirectX::XMConvertToRadians(transform.rotation.z));
+    DirectX::XMMATRIX translation =
+        DirectX::XMMatrixTranslation(transform.position.x,
+            transform.position.y, transform.position.z);
 
-    UpdateMatrixBuffer(world, camera);
+    UpdateMatrixBuffer(scale * rotation * translation, camera);
 }
 
 void Renderer::Clear() {
@@ -346,19 +300,30 @@ void Renderer::Draw(const GameObject& object, const Camera& camera)
 {
     UpdateTransformBuffer(object.transform, camera);
 
-    UINT offset = 0;
-    UINT stride = sizeof(Vertex);
-    ID3D11Buffer* vertexBuffer =
-        object.mesh.GetVertexBuffer();
+    const auto& meshes = object.model.GetMeshes();
+    const auto& materials = object.model.GetMaterials();
 
-    context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
-    context->IASetIndexBuffer(object.mesh.GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
-    context->DrawIndexed(object.mesh.GetIndexCount(), 0, 0);
+    for (const Mesh& mesh : meshes)
+    {
+        const Material& material = materials[mesh.GetMaterialIndex()];
+        ID3D11ShaderResourceView* textureView = material.GetTextureView();
+        ID3D11SamplerState* samplerState = material.GetSamplerState();
+
+        context->PSSetShaderResources(0, 1, &textureView);
+        context->PSSetSamplers(0, 1, &samplerState);
+
+        UINT offset = 0;
+        UINT stride = sizeof(Vertex);
+        ID3D11Buffer* vertexBuffer = mesh.GetVertexBuffer();
+        
+        context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+        context->IASetIndexBuffer(mesh.GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
+        context->DrawIndexed(mesh.GetIndexCount(), 0, 0);
+    }
+
 }
 
 void Renderer::EndFrame()
 {
     swapChain->Present(1, 0);
 }
-
-ID3D11Device* Renderer::GetDevice() const { return device; }

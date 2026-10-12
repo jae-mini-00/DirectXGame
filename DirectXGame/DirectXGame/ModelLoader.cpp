@@ -8,55 +8,92 @@ bool ModelLoader::Load(const char* filePath, ModelData& outModel)
         filePath, aiProcess_Triangulate);
 
     if (scene == nullptr)
-        return false;
-
-    outModel.meshes.clear();
-
-    for (unsigned int i = 0; i < scene->mNumMeshes; ++i)
     {
-        MeshData meshData;
-        aiMesh* mesh = scene->mMeshes[i];
+        MessageBoxA(
+            nullptr,
+            importer.GetErrorString(),
+            "Assimp Error",
+            MB_OK
+        );
 
-        for (unsigned int j = 0; j < mesh->mNumVertices; ++j)
-        {
-            Vertex vertex = {};
-            const aiFace& face = mesh->mFaces[j];
-
-            vertex.x = mesh->mVertices[j].x;
-            vertex.y = mesh->mVertices[j].y;
-            vertex.z = mesh->mVertices[j].z;
-            if (mesh->HasTextureCoords(0))
-            {
-                vertex.u = mesh->mTextureCoords[0][j].x;
-                vertex.v = mesh->mTextureCoords[0][j].y;
-            }
-            if (mesh->HasNormals())
-            {
-                vertex.nx = mesh->mNormals[j].x;
-                vertex.ny = mesh->mNormals[j].y;
-                vertex.nz = mesh->mNormals[j].z;
-            }
-            if (mesh->HasVertexColors(0))
-            {
-                vertex.r = mesh->mColors[0][j].r;
-                vertex.g = mesh->mColors[0][j].g;
-                vertex.b = mesh->mColors[0][j].b;
-                vertex.a = mesh->mColors[0][j].a;
-            }
-            else
-            {
-                vertex.r = 1.0f;
-                vertex.g = 1.0f;
-                vertex.b = 1.0f;
-                vertex.a = 1.0f;
-            }
-            meshData.vertices.push_back(vertex);
-            for (unsigned int k = 0; k < face.mNumIndices; ++k)
-                meshData.indices.push_back(face.mIndices[k]);
-        }
-
-        outModel.meshes.push_back(meshData);
+        return false;
     }
 
+    outModel.meshes.clear();
+    outModel.materials.clear();
+
+    LoadMaterials(scene, outModel);
+    LoadMeshes(scene, outModel);
+
     return true;
+}
+
+void ModelLoader::LoadMeshes(const aiScene* scene, ModelData& outModel)
+{
+    for (unsigned int i = 0; i < scene->mNumMeshes; ++i)
+        outModel.meshes.push_back(LoadMesh(scene->mMeshes[i]));
+}
+
+void ModelLoader::LoadMaterials(const aiScene* scene, ModelData& outModel)
+{
+    for (unsigned int i = 0; i < scene->mNumMaterials; ++i)
+    {
+        const aiMaterial* material = scene->mMaterials[i];
+        MaterialData materialData;
+        aiColor4D color;
+
+        if (AI_SUCCESS == aiGetMaterialColor(material,
+            AI_MATKEY_BASE_COLOR, &color))
+        {
+            materialData.baseColor = { color.r, color.g,
+                color.b, color.a };
+        }
+        if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0)
+        {
+            aiString texturePath;
+
+            if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) == AI_SUCCESS)
+                materialData.texturePath = texturePath.C_Str();
+        }
+        outModel.materials.push_back(materialData);
+    }
+}
+
+MeshData ModelLoader::LoadMesh(const aiMesh* mesh)
+{
+    MeshData meshData;
+
+    meshData.materialIndex = mesh->mMaterialIndex;
+    for (unsigned int j = 0; j < mesh->mNumVertices; ++j)
+    {
+        Vertex vertex = {};
+
+        vertex.x = mesh->mVertices[j].x;
+        vertex.y = mesh->mVertices[j].y;
+        vertex.z = mesh->mVertices[j].z;
+        if (mesh->HasTextureCoords(0))
+        {
+            vertex.u = mesh->mTextureCoords[0][j].x;
+            vertex.v = mesh->mTextureCoords[0][j].y;
+        }
+        if (mesh->HasNormals())
+        {
+            vertex.nx = mesh->mNormals[j].x;
+            vertex.ny = mesh->mNormals[j].y;
+            vertex.nz = mesh->mNormals[j].z;
+        }
+        meshData.vertices.push_back(vertex);
+    }
+
+    for (unsigned int j = 0; j < mesh->mNumFaces; ++j)
+    {
+        const aiFace& face = mesh->mFaces[j];
+
+        for (unsigned int k = 0; k < face.mNumIndices; ++k)
+        {
+            meshData.indices.push_back(face.mIndices[k]);
+        }
+    }
+
+    return meshData;
 }

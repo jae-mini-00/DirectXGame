@@ -1,7 +1,6 @@
 #include "Camera.h"
 
 const DirectX::XMMATRIX& Camera::GetView() const { return view; }
-
 const DirectX::XMMATRIX& Camera::GetProjection() const { return projection; }
 
 Camera::Camera(float width, float height)

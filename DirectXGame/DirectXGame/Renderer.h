@@ -35,6 +35,7 @@ class Renderer
         void Draw(const GameObject& object, const Camera& camera);
         void EndFrame();
         ID3D11Device* GetDevice() const;
+        ID3D11DeviceContext* GetContext() const;
     private:
         ID3D11Device* device;
         ID3D11DeviceContext* context;
@@ -46,8 +47,6 @@ class Renderer
         ID3D11Buffer* constantBuffer;
         ID3D11Texture2D* depthBuffer;
         ID3D11DepthStencilView* depthStencilView;
-        ID3D11ShaderResourceView* textureView;
-        ID3D11SamplerState* samplerState;
 
 
         void BindVertexStage();
@@ -60,9 +59,6 @@ class Renderer
         HRESULT CreatePixelShader();
         HRESULT CreateConstantBuffer();
         HRESULT CreateDepthBuffer(HWND hwnd);
-        DirectX::XMMATRIX CreateTransform(const Transform& transform);
-        HRESULT CreateSamplerState();
-        HRESULT CreateTexture();
 
         void UpdateMatrixBuffer(const DirectX::XMMATRIX& world, const Camera& camera);
         void UpdateTransformBuffer(const Transform& transform, const Camera& camera);

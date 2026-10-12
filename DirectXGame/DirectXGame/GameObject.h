@@ -1,7 +1,7 @@
 #pragma once
 
 #include <DirectXMath.h>
-#include "Mesh.h"
+#include "Model.h"
 
 struct Transform
 {
@@ -14,5 +14,5 @@ class GameObject
 {
     public :
         Transform transform;
-        Mesh mesh;
+        Model model;
 };

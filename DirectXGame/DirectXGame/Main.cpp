@@ -1,6 +1,7 @@
 #include "Renderer.h"
 #include "GameObject.h"
 #include "Camera.h"
+#include "ModelLoader.h"
 
 #include <chrono>
 
@@ -71,76 +72,32 @@ int WINAPI WinMain
     ShowWindow(hwnd, nCmdShow);
 
     MSG msg = {};
-
     GameObject cube;
+    ModelData modelData;
 
-    Vertex vertices[24] = {
-        //앞 0, 1, 2, 3
-        {-0.5,  0.5,  0.5, 1, 1, 1, 1, 0.0f, 0.0f},
-        {0.5,  0.5,  0.5, 1, 1, 1, 1, 1.0f, 0.0f},
-        {0.5, -0.5,  0.5, 1, 1, 1, 1, 1.0f, 1.0f},
-        {-0.5, -0.5,  0.5, 1, 1, 1, 1, 0.0f, 1.0f},
-        //뒤 4, 5, 6, 7
-        {-0.5,  0.5,  -0.5, 1, 1, 1, 1, 0.0f, 0.0f},
-        {0.5,  0.5,  -0.5, 1, 1, 1, 1, 1.0f, 0.0f},
-        {0.5, -0.5,  -0.5, 1, 1, 1, 1, 1.0f, 1.0f},
-        {-0.5, -0.5,  -0.5, 1, 1, 1, 1, 0.0f, 1.0f},
-        //오른쪽 8, 9, 10, 11
-        {0.5,  0.5,  0.5, 1, 1, 1, 1, 0.0f, 0.0f},
-        {0.5,  0.5,  -0.5, 1, 1, 1, 1, 1.0f, 0.0f},
-        {0.5, -0.5,  -0.5, 1, 1, 1, 1, 1.0f, 1.0f},
-        {0.5, -0.5,  0.5, 1, 1, 1, 1, 0.0f, 1.0f},
-        //왼쪽 12, 13, 14, 15
-        {-0.5,  0.5,  -0.5, 1, 1, 1, 1, 0.0f, 0.0f},
-        {-0.5,  0.5,  0.5, 1, 1, 1, 1, 1.0f, 0.0f},
-        {-0.5, -0.5,  0.5, 1, 1, 1, 1, 1.0f, 1.0f},
-        {-0.5, -0.5,  -0.5, 1, 1, 1, 1, 0.0f, 1.0f},
-        //위 16, 17, 18, 19
-        {-0.5,  0.5,  -0.5, 1, 1, 1, 1, 0.0f, 0.0f},
-        {0.5,  0.5,  -0.5, 1, 1, 1, 1, 1.0f, 0.0f},
-        {0.5,  0.5,  0.5, 1, 1, 1, 1, 1.0f, 1.0f},
-        {-0.5,  0.5,  0.5, 1, 1, 1, 1, 0.0f, 1.0f},
-        //아래 20, 21, 22, 23
-        {-0.5, -0.5,  0.5, 1, 1, 1, 1, 0.0f, 0.0f},
-        {0.5, -0.5,  0.5, 1, 1, 1, 1, 1.0f, 0.0f},
-        {0.5, -0.5,  -0.5, 1, 1, 1, 1, 1.0f, 1.0f},
-        {-0.5, -0.5,  -0.5, 1, 1, 1, 1, 0.0f, 1.0f},
-    };
-
-    unsigned int indices[36] = {
-        //앞
-        0, 2, 1,
-        0, 3, 2,
-        //뒤
-        4, 5, 6,
-        4, 6, 7,
-        //오른쪽
-        8, 10, 9,
-        8, 11, 10,
-        //왼쪽
-        12, 14, 13,
-        12, 15, 14,
-        //위
-        16, 18, 17,
-        16, 19, 18,
-        //아래
-        20, 22, 21,
-        20, 23, 22
-    };
-
-    HRESULT meshHr = cube.mesh.Initialize(
-        renderer.GetDevice(),
-        vertices,
-        24,
-        indices,
-        36
-    );
-
-    if (FAILED(meshHr))
+    if (!ModelLoader::Load("cube.obj", modelData))
     {
         MessageBox(
             hwnd,
-            L"Mesh Initialize Failed",
+            L"Model Load Failed",
+            L"Error",
+            MB_OK
+        );
+
+        return 0;
+    }
+
+    HRESULT modelHr = cube.model.Initialize(
+        renderer.GetDevice(),
+        renderer.GetContext(),
+        modelData
+    );
+
+    if (FAILED(modelHr))
+    {
+        MessageBox(
+            hwnd,
+            L"Model Initialize Failed",
             L"Error",
             MB_OK
         );
