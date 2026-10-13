@@ -155,7 +155,7 @@ HRESULT Renderer::CreateConstantBuffer()
 
 HRESULT Renderer::CreateInputLayout(ID3DBlob* shaderBlob)
 {
-    D3D11_INPUT_ELEMENT_DESC layout[2] = {};
+    D3D11_INPUT_ELEMENT_DESC layout[3] = {};
 
     layout[0].SemanticName = "POSITION";
     layout[0].SemanticIndex = 0;
@@ -173,7 +173,15 @@ HRESULT Renderer::CreateInputLayout(ID3DBlob* shaderBlob)
     layout[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
     layout[1].InstanceDataStepRate = 0;
 
-    RETURN_IF_FAILED(device->CreateInputLayout(layout, 2, shaderBlob->GetBufferPointer(), 
+    layout[2].SemanticName = "NORMAL";
+    layout[2].SemanticIndex = 0;
+    layout[2].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+    layout[2].InputSlot = 0;
+    layout[2].AlignedByteOffset = offsetof(Vertex, nx);
+    layout[2].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+    layout[2].InstanceDataStepRate = 0;
+
+    RETURN_IF_FAILED(device->CreateInputLayout(layout, 3, shaderBlob->GetBufferPointer(), 
         shaderBlob->GetBufferSize(), &inputLayout));
 
 
