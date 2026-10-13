@@ -2,6 +2,7 @@
 #include "GameObject.h"
 #include "DxUtils.h"
 #include "Camera.h"
+#include "Material.h"
 
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "d3d11.lib")
@@ -11,18 +12,20 @@ ID3D11DeviceContext* Renderer::GetContext() const { return context; }
 
 Renderer::Renderer() : device(nullptr), context(nullptr), swapChain(nullptr), 
 renderTargetView(nullptr), vertexShader(nullptr), pixelShader(nullptr),
-inputLayout(nullptr), constantBuffer(nullptr), depthBuffer(nullptr), 
-depthStencilView(nullptr) {}
+inputLayout(nullptr), matrixBuffer(nullptr), depthBuffer(nullptr),
+depthStencilView(nullptr), materialBuffer(nullptr) {}
 
 
 Renderer::~Renderer()
 {
+    if (materialBuffer)
+        materialBuffer->Release();
     if (depthStencilView)
         depthStencilView->Release();
     if (depthBuffer)
         depthBuffer->Release();
-    if (constantBuffer)
-        constantBuffer->Release();
+    if (matrixBuffer)
+        matrixBuffer->Release();
     if (pixelShader)
         pixelShader->Release();
     if (vertexShader)
@@ -62,7 +65,8 @@ HRESULT Renderer::Initialize(HWND hwnd)
     context->RSSetViewports(1, &viewport);
 
 
-    RETURN_IF_FAILED(CreateConstantBuffer());
+    RETURN_IF_FAILED(CreateMatrixBuffer());
+    RETURN_IF_FAILED(CreateMaterialBuffer());
 
     RETURN_IF_FAILED(CreateVertexShader());
     RETURN_IF_FAILED(CreatePixelShader());
@@ -78,7 +82,13 @@ void Renderer::BindVertexStage()
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     context->IASetInputLayout(inputLayout);
     context->VSSetShader(vertexShader, nullptr, 0);
-    context->VSSetConstantBuffers(0, 1, &constantBuffer);
+    context->VSSetConstantBuffers(0, 1, &matrixBuffer);
+}
+
+void Renderer::BindPixelStage()
+{
+    context->PSSetShader(pixelShader, nullptr, 0);
+    context->PSSetConstantBuffers(0, 1, &materialBuffer);
 }
 
 D3D11_VIEWPORT Renderer::CreateViewport(HWND hwnd)
@@ -137,7 +147,7 @@ FeatureLevelInfo Renderer::CreateFeatureLevelInfo()
     return Info;
 }
 
-HRESULT Renderer::CreateConstantBuffer()
+HRESULT Renderer::CreateMatrixBuffer()
 {
     D3D11_BUFFER_DESC bufferDesc = {};
 
@@ -148,7 +158,23 @@ HRESULT Renderer::CreateConstantBuffer()
     bufferDesc.MiscFlags = 0;
     bufferDesc.StructureByteStride = 0;
 
-    RETURN_IF_FAILED(device->CreateBuffer(&bufferDesc, nullptr, &constantBuffer));
+    RETURN_IF_FAILED(device->CreateBuffer(&bufferDesc, nullptr, &matrixBuffer));
+
+    return S_OK;
+}
+
+HRESULT Renderer::CreateMaterialBuffer()
+{
+    D3D11_BUFFER_DESC bufferDesc = {};
+
+    bufferDesc.ByteWidth = sizeof(MaterialBuffer);
+    bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+    bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    bufferDesc.CPUAccessFlags = 0;
+    bufferDesc.MiscFlags = 0;
+    bufferDesc.StructureByteStride = 0;
+
+    RETURN_IF_FAILED(device->CreateBuffer(&bufferDesc, nullptr, &materialBuffer));
 
     return S_OK;
 }
@@ -225,7 +251,7 @@ HRESULT Renderer::CreatePixelShader()
         shaderBlob->GetBufferSize(), nullptr, &pixelShader), shaderBlob);
     shaderBlob->Release();
 
-    context->PSSetShader(pixelShader, nullptr, 0);
+    BindPixelStage();
 
     return S_OK;
 }
@@ -270,7 +296,7 @@ void Renderer::UpdateMatrixBuffer(const DirectX::XMMATRIX& world, const Camera& 
     matrixData.projection =
         DirectX::XMMatrixTranspose(camera.GetProjection());
 
-    context->UpdateSubresource(constantBuffer, 0, nullptr,
+    context->UpdateSubresource(matrixBuffer, 0, nullptr,
         &matrixData, 0, 0);
 }
 
@@ -291,8 +317,21 @@ void Renderer::UpdateTransformBuffer(const Transform& transform, const Camera& c
     UpdateMatrixBuffer(scale * rotation * translation, camera);
 }
 
+void Renderer::UpdateMaterialBuffer(const Material& material)
+{
+    MaterialBuffer materialData = {};
+
+    materialData.baseColor = material.GetBaseColor();
+    if (material.GetTextureView())
+        materialData.hasTexture = 1;
+
+    context->UpdateSubresource(materialBuffer, 0, nullptr,
+        &materialData, 0, 0);
+}
+
+
 void Renderer::Clear() {
-    float rgbaColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    float rgbaColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
     context->ClearRenderTargetView(renderTargetView, rgbaColor);
 
@@ -316,6 +355,8 @@ void Renderer::Draw(const GameObject& object, const Camera& camera)
         const Material& material = materials[mesh.GetMaterialIndex()];
         ID3D11ShaderResourceView* textureView = material.GetTextureView();
         ID3D11SamplerState* samplerState = material.GetSamplerState();
+
+        UpdateMaterialBuffer(material);
 
         context->PSSetShaderResources(0, 1, &textureView);
         context->PSSetSamplers(0, 1, &samplerState);

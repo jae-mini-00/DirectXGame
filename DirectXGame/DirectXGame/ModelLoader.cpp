@@ -90,7 +90,7 @@ void ModelLoader::LoadMaterials(const aiScene* scene, ModelData& outModel)
         aiColor4D color;
 
         if (AI_SUCCESS == aiGetMaterialColor(material,
-            AI_MATKEY_BASE_COLOR, &color))
+            AI_MATKEY_COLOR_DIFFUSE, &color))
         {
             materialData.baseColor = { color.r, color.g,
                 color.b, color.a };
