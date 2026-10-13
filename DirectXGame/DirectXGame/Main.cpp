@@ -5,6 +5,8 @@
 
 #include <chrono>
 
+Camera* gCamera = nullptr;
+
 LRESULT CALLBACK WindowProc
 (
     HWND hwnd,
@@ -14,9 +16,23 @@ LRESULT CALLBACK WindowProc
 {
     switch (msg)
     {
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        return 0;
+        case WM_DESTROY:
+            PostQuitMessage(0);
+            return 0;
+        case WM_MOUSEWHEEL:
+        {
+            short delta = GET_WHEEL_DELTA_WPARAM(wParam);
+
+            if (gCamera)
+            {
+                if (delta > 0)
+                    gCamera->Zoom(-0.5f);
+                else
+                    gCamera->Zoom(0.5f);
+            }
+
+            return 0;
+        }
     }
 
     return DefWindowProc(hwnd, msg, wParam, lParam);
@@ -75,7 +91,7 @@ int WINAPI WinMain
     GameObject cube;
     ModelData modelData;
 
-    if (!ModelLoader::Load("cube.obj", modelData))
+    if (!ModelLoader::Load("chair01_textured.obj", modelData))
     {
         MessageBox(
             hwnd,
@@ -86,7 +102,7 @@ int WINAPI WinMain
 
         return 0;
     }
-
+    cube.transform.scale = { 0.01f, 0.01f, 0.01f };
     HRESULT modelHr = cube.model.Initialize(
         renderer.GetDevice(),
         renderer.GetContext(),
@@ -110,9 +126,7 @@ int WINAPI WinMain
     float height = static_cast<float>(rect.bottom - rect.top);
 
     Camera camera(width, height);
-
-    cube.transform.rotation.x = 30.0f;
-    cube.transform.rotation.y = 45.0f;
+    gCamera = &camera;
     auto lastTime = std::chrono::steady_clock::now();
     while (msg.message != WM_QUIT)
     {
@@ -137,7 +151,7 @@ int WINAPI WinMain
 
             lastTime = currentTime;
 
-            cube.transform.rotation.y += 90.0f * deltaTime;
+            cube.transform.rotation.y += 30.0f * deltaTime;
             renderer.BeginFrame();
 
             renderer.Draw(cube, camera);

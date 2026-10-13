@@ -331,7 +331,7 @@ void Renderer::UpdateMaterialBuffer(const Material& material)
 
 
 void Renderer::Clear() {
-    float rgbaColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    float rgbaColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
     context->ClearRenderTargetView(renderTargetView, rgbaColor);
 

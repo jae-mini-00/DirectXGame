@@ -1,0 +1,3 @@
+newmtl ChairMaterial
+Kd 1.0 1.0 1.0
+map_Kd chair01_texture.png
