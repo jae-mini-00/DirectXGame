@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Scene.h"
 #include <windows.h>
 #include <d3d11.h>
 #include <DirectXMath.h>
@@ -40,7 +41,7 @@ class Renderer
 
         HRESULT Initialize(HWND hwnd);
         void BeginFrame();
-        void Draw(const GameObject& object, const Camera& camera);
+        void Draw(const Scene& scene, const Camera& camera);
         void EndFrame();
         ID3D11Device* GetDevice() const;
         ID3D11DeviceContext* GetContext() const;

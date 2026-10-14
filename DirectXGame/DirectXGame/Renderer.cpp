@@ -343,33 +343,37 @@ void Renderer::BeginFrame()
     Clear();
 }
 
-void Renderer::Draw(const GameObject& object, const Camera& camera)
+void Renderer::Draw(const Scene& scene, const Camera& camera)
 {
-    UpdateTransformBuffer(object.transform, camera);
+    const std::vector<std::unique_ptr<GameObject>>& obs = scene.GetObjects();
 
-    const auto& meshes = object.model.GetMeshes();
-    const auto& materials = object.model.GetMaterials();
-
-    for (const Mesh& mesh : meshes)
+    for (const std::unique_ptr<GameObject>& object : obs)
     {
-        const Material& material = materials[mesh.GetMaterialIndex()];
-        ID3D11ShaderResourceView* textureView = material.GetTextureView();
-        ID3D11SamplerState* samplerState = material.GetSamplerState();
+        UpdateTransformBuffer(object->transform, camera);
 
-        UpdateMaterialBuffer(material);
+        const std::vector<Mesh>& meshes = object->model.GetMeshes();
+        const std::vector<Material>& materials = object->model.GetMaterials();
 
-        context->PSSetShaderResources(0, 1, &textureView);
-        context->PSSetSamplers(0, 1, &samplerState);
+        for (const Mesh& mesh : meshes)
+        {
+            const Material& material = materials[mesh.GetMaterialIndex()];
+            ID3D11ShaderResourceView* textureView = material.GetTextureView();
+            ID3D11SamplerState* samplerState = material.GetSamplerState();
 
-        UINT offset = 0;
-        UINT stride = sizeof(Vertex);
-        ID3D11Buffer* vertexBuffer = mesh.GetVertexBuffer();
-        
-        context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
-        context->IASetIndexBuffer(mesh.GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
-        context->DrawIndexed(mesh.GetIndexCount(), 0, 0);
+            UpdateMaterialBuffer(material);
+
+            context->PSSetShaderResources(0, 1, &textureView);
+            context->PSSetSamplers(0, 1, &samplerState);
+
+            UINT offset = 0;
+            UINT stride = sizeof(Vertex);
+            ID3D11Buffer* vertexBuffer = mesh.GetVertexBuffer();
+
+            context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+            context->IASetIndexBuffer(mesh.GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
+            context->DrawIndexed(mesh.GetIndexCount(), 0, 0);
+        }
     }
-
 }
 
 void Renderer::EndFrame()

@@ -2,6 +2,7 @@
 #include "GameObject.h"
 #include "Camera.h"
 #include "ModelLoader.h"
+#include "Scene.h"
 
 #include <chrono>
 
@@ -53,20 +54,11 @@ int WINAPI WinMain
 
     RegisterClass(&wc);
 
-    HWND hwnd = CreateWindowEx(
-        0,
-        L"GameWindow",
-        L"DirectX Game",
+    HWND hwnd = CreateWindowEx( 0,
+        L"GameWindow", L"DirectX Game",
         WS_OVERLAPPEDWINDOW,
-        100,
-        100,
-        1280,
-        720,
-        nullptr,
-        nullptr,
-        hInstance,
-        nullptr
-    );
+        100, 100, 1280, 720,
+        nullptr, nullptr, hInstance, nullptr);
 
     if (hwnd == nullptr)
         return 0;
@@ -76,50 +68,41 @@ int WINAPI WinMain
 
     if (FAILED(hr))
     {
-        MessageBox(
-            hwnd,
-            L"Renderer Initialize Failed",
-            L"Error",
-            MB_OK
-        );
+        MessageBox( hwnd, L"Renderer Initialize Failed",
+            L"Error", MB_OK);
         return 0;
     }
 
     ShowWindow(hwnd, nCmdShow);
 
     MSG msg = {};
-    GameObject cube;
     ModelData modelData;
 
     if (!ModelLoader::Load("chair01_textured.obj", modelData))
     {
-        MessageBox(
-            hwnd,
-            L"Model Load Failed",
-            L"Error",
-            MB_OK
-        );
+        MessageBox( hwnd, L"Model Load Failed",
+            L"Error", MB_OK);
 
         return 0;
     }
-    cube.transform.scale = { 0.01f, 0.01f, 0.01f };
-    HRESULT modelHr = cube.model.Initialize(
-        renderer.GetDevice(),
-        renderer.GetContext(),
-        modelData
-    );
+
+    std::unique_ptr<GameObject> chair = std::make_unique<GameObject>();
+    chair->transform.scale = { 0.01f, 0.01f, 0.01f };
+    HRESULT modelHr = chair->model.Initialize(
+        renderer.GetDevice(), renderer.GetContext(),
+        modelData);
 
     if (FAILED(modelHr))
     {
-        MessageBox(
-            hwnd,
-            L"Model Initialize Failed",
-            L"Error",
-            MB_OK
-        );
+        MessageBox(hwnd, L"Model Initialize Failed",
+            L"Error", MB_OK);
 
         return 0;
     }
+
+    Scene scene;
+    scene.AddObject(std::move(chair));
+
     RECT rect;
     GetClientRect(hwnd, &rect);
     float width = static_cast<float>(rect.right - rect.left);
@@ -130,12 +113,8 @@ int WINAPI WinMain
     auto lastTime = std::chrono::steady_clock::now();
     while (msg.message != WM_QUIT)
     {
-        if (PeekMessage(
-            &msg,
-            nullptr,
-            0,
-            0,
-            PM_REMOVE))
+        if (PeekMessage(&msg, nullptr,
+            0, 0, PM_REMOVE))
         {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
@@ -151,10 +130,10 @@ int WINAPI WinMain
 
             lastTime = currentTime;
 
-            cube.transform.rotation.y += 30.0f * deltaTime;
+            scene.GetObjects()[0]->transform.rotation.y += 30.0f * deltaTime;
             renderer.BeginFrame();
 
-            renderer.Draw(cube, camera);
+            renderer.Draw(scene, camera);
 
             renderer.EndFrame();
         }
