@@ -353,9 +353,10 @@ void Renderer::UpdateLightBuffer()
 {
     LightBuffer lightData = {};
 
-    lightData.direction = { 0.0f, -1.0f, 0.0f };
+    lightData.direction = { 1.0f, -1.0f, 1.0f };
     lightData.intensity = 1.0f;
     lightData.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+    lightData.ambientIntensity = 0.2f;
 
     context->UpdateSubresource(lightBuffer, 0, nullptr,
         &lightData, 0, 0);

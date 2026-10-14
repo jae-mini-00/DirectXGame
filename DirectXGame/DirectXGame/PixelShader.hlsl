@@ -5,7 +5,7 @@ cbuffer MaterialBuffer : register(b0)
 {
     float4 baseColor;
     int hasTexture;
-    int padding[3];
+    int materialPadding[3];
 };
 
 cbuffer LightBuffer : register(b1)
@@ -13,6 +13,8 @@ cbuffer LightBuffer : register(b1)
     float3 direction;
     float intensity;
     float4 color;
+    float ambientIntensity;
+    int lightPadding[3];
 };
 
 struct PSInput
@@ -27,7 +29,10 @@ float4 main(PSInput input) : SV_TARGET
     float3 normal = normalize(input.normal);
     float3 lightDir = normalize(direction);
     float diffuse = max(dot(normal, -lightDir), 0.0f);
-    float4 textureColor = baseColor * color * intensity * diffuse;
+    float directional = diffuse * intensity;
+    float lighting = saturate(ambientIntensity + directional);
+
+    float4 textureColor = baseColor * color * lighting;
     if (hasTexture)
         textureColor *= texture0.Sample(sampler0, input.uv);
 
