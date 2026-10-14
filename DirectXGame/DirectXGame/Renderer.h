@@ -28,9 +28,16 @@ struct MatrixBuffer
 
 struct MaterialBuffer
 {
-    DirectX::XMFLOAT4 baseColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+    DirectX::XMFLOAT4 baseColor = {1.0f, 1.0f, 1.0f, 1.0f};
     int hasTexture = 0;
     int padding[3] = {0 , 0, 0};
+};
+
+struct LightBuffer
+{
+    DirectX::XMFLOAT3 direction = { 0.0f, -1.0f, 0.0f };
+    float intensity = 1.0f;
+    DirectX::XMFLOAT4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
 };
 
 class Renderer
@@ -57,6 +64,7 @@ class Renderer
         ID3D11Texture2D* depthBuffer;
         ID3D11DepthStencilView* depthStencilView;
         ID3D11Buffer* materialBuffer;
+        ID3D11Buffer* lightBuffer;
 
 
         void BindVertexStage();
@@ -71,7 +79,9 @@ class Renderer
         HRESULT CreateMatrixBuffer();
         HRESULT CreateDepthBuffer(HWND hwnd);
         HRESULT CreateMaterialBuffer();
+        HRESULT CreateLightBuffer();
 
+        void UpdateLightBuffer();
         void UpdateMaterialBuffer(const Material& material);
         void UpdateMatrixBuffer(const DirectX::XMMATRIX& world, const Camera& camera);
         void UpdateTransformBuffer(const Transform& transform, const Camera& camera);

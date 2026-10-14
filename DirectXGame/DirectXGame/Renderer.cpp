@@ -13,11 +13,13 @@ ID3D11DeviceContext* Renderer::GetContext() const { return context; }
 Renderer::Renderer() : device(nullptr), context(nullptr), swapChain(nullptr), 
 renderTargetView(nullptr), vertexShader(nullptr), pixelShader(nullptr),
 inputLayout(nullptr), matrixBuffer(nullptr), depthBuffer(nullptr),
-depthStencilView(nullptr), materialBuffer(nullptr) {}
+depthStencilView(nullptr), materialBuffer(nullptr), lightBuffer(nullptr) {}
 
 
 Renderer::~Renderer()
 {
+    if (lightBuffer)
+        lightBuffer->Release();
     if (materialBuffer)
         materialBuffer->Release();
     if (depthStencilView)
@@ -67,6 +69,7 @@ HRESULT Renderer::Initialize(HWND hwnd)
 
     RETURN_IF_FAILED(CreateMatrixBuffer());
     RETURN_IF_FAILED(CreateMaterialBuffer());
+    RETURN_IF_FAILED(CreateLightBuffer());
 
     RETURN_IF_FAILED(CreateVertexShader());
     RETURN_IF_FAILED(CreatePixelShader());
@@ -89,6 +92,7 @@ void Renderer::BindPixelStage()
 {
     context->PSSetShader(pixelShader, nullptr, 0);
     context->PSSetConstantBuffers(0, 1, &materialBuffer);
+    context->PSSetConstantBuffers(1, 1, &lightBuffer);
 }
 
 D3D11_VIEWPORT Renderer::CreateViewport(HWND hwnd)
@@ -175,6 +179,22 @@ HRESULT Renderer::CreateMaterialBuffer()
     bufferDesc.StructureByteStride = 0;
 
     RETURN_IF_FAILED(device->CreateBuffer(&bufferDesc, nullptr, &materialBuffer));
+
+    return S_OK;
+}
+
+HRESULT Renderer::CreateLightBuffer()
+{
+    D3D11_BUFFER_DESC bufferDesc = {};
+
+    bufferDesc.ByteWidth = sizeof(LightBuffer);
+    bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+    bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    bufferDesc.CPUAccessFlags = 0;
+    bufferDesc.MiscFlags = 0;
+    bufferDesc.StructureByteStride = 0;
+
+    RETURN_IF_FAILED(device->CreateBuffer(&bufferDesc, nullptr, &lightBuffer));
 
     return S_OK;
 }
@@ -329,6 +349,18 @@ void Renderer::UpdateMaterialBuffer(const Material& material)
         &materialData, 0, 0);
 }
 
+void Renderer::UpdateLightBuffer()
+{
+    LightBuffer lightData = {};
+
+    lightData.direction = { 0.0f, -1.0f, 0.0f };
+    lightData.intensity = 1.0f;
+    lightData.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+    context->UpdateSubresource(lightBuffer, 0, nullptr,
+        &lightData, 0, 0);
+}
+
 
 void Renderer::Clear() {
     float rgbaColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -345,6 +377,7 @@ void Renderer::BeginFrame()
 
 void Renderer::Draw(const Scene& scene, const Camera& camera)
 {
+    UpdateLightBuffer();
     const std::vector<std::unique_ptr<GameObject>>& obs = scene.GetObjects();
 
     for (const std::unique_ptr<GameObject>& object : obs)
