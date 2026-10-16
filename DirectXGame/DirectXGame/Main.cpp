@@ -39,6 +39,28 @@ LRESULT CALLBACK WindowProc
     return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
+
+HRESULT AddModelToScene(const Renderer& renderer, Scene& scene, const char* filePath,
+    DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 scale)
+{
+    ModelData modelData;
+
+    if (!ModelLoader::Load(filePath, modelData))
+        return E_FAIL;
+    std::unique_ptr<GameObject> model = std::make_unique<GameObject>();
+    model->transform.scale = scale;
+    model->transform.position = position;
+    HRESULT modelHr = model->model.Initialize(
+        renderer.GetDevice(), renderer.GetContext(),
+        modelData);
+
+    if (FAILED(modelHr))
+        return modelHr;
+
+    scene.AddObject(std::move(model));
+    return S_OK;
+}
+
 int WINAPI WinMain
 (
     HINSTANCE hInstance,
@@ -76,58 +98,26 @@ int WINAPI WinMain
     ShowWindow(hwnd, nCmdShow);
 
     MSG msg = {};
-    ModelData modelChair;
-    ModelData modelBarrel;
-
-    if (!ModelLoader::Load("chair01_textured.obj", modelChair))
-    {
-        MessageBox( hwnd, L"Model Load Failed",
-            L"Error", MB_OK);
-
-        return 0;
-    }
-    if (!ModelLoader::Load("model.obj", modelBarrel))
-    {
-        MessageBox(hwnd, L"Model Load Failed",
-            L"Error", MB_OK);
-
-        return 0;
-    }
-
-    std::unique_ptr<GameObject> chair = std::make_unique<GameObject>();
-    chair->transform.scale = { 0.01f, 0.01f, 0.01f };
-    HRESULT modelHr = chair->model.Initialize(
-        renderer.GetDevice(), renderer.GetContext(),
-        modelChair);
-
-    if (FAILED(modelHr))
-    {
-        MessageBox(hwnd, L"Model Initialize Failed",
-            L"Error", MB_OK);
-
-        return 0;
-    }
-
-    std::unique_ptr<GameObject> barrel = std::make_unique<GameObject>();
-    barrel->transform.scale = { 0.50f, 0.50f, 0.50f };
-    barrel->transform.position = { 3.01f, 0.01f, 0.01f };
-    modelHr = barrel->model.Initialize(
-        renderer.GetDevice(), renderer.GetContext(),
-        modelBarrel);
-
-    if (FAILED(modelHr))
-    {
-        MessageBox(hwnd, L"Model Initialize Failed",
-            L"Error", MB_OK);
-
-        return 0;
-    }
-
-
-
     Scene scene;
-    scene.AddObject(std::move(chair));
-    scene.AddObject(std::move(barrel));
+    DirectX::XMFLOAT3 scale;
+    DirectX::XMFLOAT3 position;
+
+    scale = { 0.3f, 0.3f, 0.3f };
+    position = { 0.0f, 0.0f, 0.0f };
+    hr = AddModelToScene(renderer, scene, "model.obj", position, scale);
+    if (FAILED(hr))
+    {
+        MessageBox(hwnd, L"modle Add Failed", L"Error", MB_OK);
+        return 0;
+    }
+    scale = { 0.01f, 0.01f, 0.01f };
+    position = { 3.0f, 0.0f, 0.0f };
+    hr = AddModelToScene(renderer, scene, "chair01_textured.obj", position, scale);
+    if (FAILED(hr))
+    {
+        MessageBox(hwnd, L"Chair Add Failed", L"Error", MB_OK);
+        return 0;
+    }
 
     RECT rect;
     GetClientRect(hwnd, &rect);
