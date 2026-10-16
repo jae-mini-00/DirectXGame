@@ -76,11 +76,19 @@ int WINAPI WinMain
     ShowWindow(hwnd, nCmdShow);
 
     MSG msg = {};
-    ModelData modelData;
+    ModelData modelChair;
+    ModelData modelBarrel;
 
-    if (!ModelLoader::Load("chair01_textured.obj", modelData))
+    if (!ModelLoader::Load("chair01_textured.obj", modelChair))
     {
         MessageBox( hwnd, L"Model Load Failed",
+            L"Error", MB_OK);
+
+        return 0;
+    }
+    if (!ModelLoader::Load("model.obj", modelBarrel))
+    {
+        MessageBox(hwnd, L"Model Load Failed",
             L"Error", MB_OK);
 
         return 0;
@@ -90,7 +98,7 @@ int WINAPI WinMain
     chair->transform.scale = { 0.01f, 0.01f, 0.01f };
     HRESULT modelHr = chair->model.Initialize(
         renderer.GetDevice(), renderer.GetContext(),
-        modelData);
+        modelChair);
 
     if (FAILED(modelHr))
     {
@@ -100,8 +108,26 @@ int WINAPI WinMain
         return 0;
     }
 
+    std::unique_ptr<GameObject> barrel = std::make_unique<GameObject>();
+    barrel->transform.scale = { 0.50f, 0.50f, 0.50f };
+    barrel->transform.position = { 3.01f, 0.01f, 0.01f };
+    modelHr = barrel->model.Initialize(
+        renderer.GetDevice(), renderer.GetContext(),
+        modelBarrel);
+
+    if (FAILED(modelHr))
+    {
+        MessageBox(hwnd, L"Model Initialize Failed",
+            L"Error", MB_OK);
+
+        return 0;
+    }
+
+
+
     Scene scene;
     scene.AddObject(std::move(chair));
+    scene.AddObject(std::move(barrel));
 
     RECT rect;
     GetClientRect(hwnd, &rect);

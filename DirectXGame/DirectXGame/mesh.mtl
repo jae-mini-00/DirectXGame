@@ -1,0 +1,7 @@
+newmtl Matériau
+Kd 1.0 1.0 1.0
+map_Kd diffuse.png
+
+newmtl Matériau.001
+Kd 1.0 1.0 1.0
+map_Kd diffuse.png

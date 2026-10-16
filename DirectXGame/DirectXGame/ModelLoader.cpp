@@ -101,7 +101,6 @@ void ModelLoader::LoadMaterials(const aiScene* scene, ModelData& outModel)
 
             if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) == AI_SUCCESS)
                 materialData.texturePath = texturePath.C_Str();
-
         }
         outModel.materials.push_back(materialData);
     }
