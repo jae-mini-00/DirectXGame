@@ -1,4 +1,4 @@
-#include "Camera.h"
+#include "Core/Camera.h"
 
 const DirectX::XMMATRIX& Camera::GetView() const { return view; }
 const DirectX::XMMATRIX& Camera::GetProjection() const { return projection; }

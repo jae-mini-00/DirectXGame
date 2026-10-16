@@ -4,8 +4,9 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-#include "Mesh.h"
-#include "Material.h"
+#include "Graphics/Mesh.h"
+#include "Graphics/Material.h"
+#include <filesystem>
 
 struct ModelData
 {
@@ -16,10 +17,11 @@ struct ModelData
 class ModelLoader 
 {
 	public:
-		static bool Load(const char* filePath, ModelData& outModel);
+		static bool Load(std::filesystem::path filePath, ModelData& outModel);
 
 	private:
-		static void LoadMaterials(const aiScene* scene, ModelData& outModel);
+		static void LoadMaterials(const aiScene* scene, ModelData& outModel, 
+			const std::filesystem::path& parentPath);
 		static void LoadMeshes(const aiScene* scene, ModelData& outModel);
 		static MeshData LoadMesh(const aiMesh* mesh);
 };

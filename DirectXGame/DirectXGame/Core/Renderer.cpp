@@ -1,8 +1,8 @@
-#include "Renderer.h"
-#include "GameObject.h"
-#include "DxUtils.h"
-#include "Camera.h"
-#include "Material.h"
+#include "Core/Renderer.h"
+#include "Scene/GameObject.h"
+#include "Core/DxUtils.h"
+#include "Core/Camera.h"
+#include "Graphics/Material.h"
 
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "d3d11.lib")
@@ -44,6 +44,8 @@ Renderer::~Renderer()
         device->Release();
 }
 
+#include <stdio.h>
+
 HRESULT Renderer::Initialize(HWND hwnd)
 {
     IDXGIAdapter* pAdapter = nullptr;
@@ -56,10 +58,11 @@ HRESULT Renderer::Initialize(HWND hwnd)
     UINT SDKVersion = D3D11_SDK_VERSION;
     DXGI_SWAP_CHAIN_DESC swapChainDesc = CreateswapChainDescInfo(hwnd);
     const DXGI_SWAP_CHAIN_DESC* pSwapChainDesc = &swapChainDesc;
-
+    
     RETURN_IF_FAILED(D3D11CreateDeviceAndSwapChain(pAdapter, DriverType, Software, Flags,
         FeatureInfo.levels, FeatureInfo.count, SDKVersion, pSwapChainDesc, 
         &swapChain, &device, pFeatureLevel, &context));
+
 
     RETURN_IF_FAILED(CreateRenderTarget());
 
@@ -70,6 +73,7 @@ HRESULT Renderer::Initialize(HWND hwnd)
     RETURN_IF_FAILED(CreateMatrixBuffer());
     RETURN_IF_FAILED(CreateMaterialBuffer());
     RETURN_IF_FAILED(CreateLightBuffer());
+
 
     RETURN_IF_FAILED(CreateVertexShader());
     RETURN_IF_FAILED(CreatePixelShader());
@@ -238,7 +242,7 @@ HRESULT Renderer::CreateVertexShader()
 {
     ID3DBlob* errorBlob = nullptr;
     ID3DBlob* shaderBlob = nullptr;
-    RETURN_IF_FAILED_AND_RELEASE(D3DCompileFromFile(L"VertexShader.hlsl", nullptr,
+    RETURN_IF_FAILED_AND_RELEASE(D3DCompileFromFile(L"Shaders/VertexShader.hlsl", nullptr,
         nullptr, "main", "vs_5_0", 0, 0, &shaderBlob, &errorBlob), errorBlob);
     if (errorBlob) {
         errorBlob->Release();
@@ -261,7 +265,7 @@ HRESULT Renderer::CreatePixelShader()
 {
     ID3DBlob* errorBlob = nullptr;
     ID3DBlob* shaderBlob = nullptr;
-    RETURN_IF_FAILED_AND_RELEASE(D3DCompileFromFile(L"PixelShader.hlsl", nullptr,
+    RETURN_IF_FAILED_AND_RELEASE(D3DCompileFromFile(L"Shaders/PixelShader.hlsl", nullptr,
         nullptr, "main", "ps_5_0", 0, 0, &shaderBlob, &errorBlob), errorBlob);
     if (errorBlob) {
         errorBlob->Release();

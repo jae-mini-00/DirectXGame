@@ -1,4 +1,4 @@
-#include"Model.h"
+#include"Graphics/Model.h"
 
 const std::vector<Mesh>& Model::GetMeshes() const { return meshes; }
 const std::vector<Material>& Model::GetMaterials() const { return materials; }

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <DirectXMath.h>
-#include "Model.h"
+#include "Graphics/Model.h"
 
 struct Transform
 {

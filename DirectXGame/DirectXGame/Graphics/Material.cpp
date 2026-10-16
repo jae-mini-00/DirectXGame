@@ -1,5 +1,5 @@
-#include "Material.h"
-#include "DxUtils.h"
+#include "Graphics/Material.h"
+#include "Core/DxUtils.h"
 
 #include <directxtk/WICTextureLoader.h>
 #include <string>

@@ -1,9 +1,9 @@
 #pragma once
 
 #include <vector>
-#include "Mesh.h"
-#include "Material.h"
-#include "ModelLoader.h"
+#include "Graphics/Mesh.h"
+#include "Graphics/Material.h"
+#include "Graphics/ModelLoader.h"
 
 class Model
 {

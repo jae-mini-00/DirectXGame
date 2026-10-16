@@ -1,5 +1,5 @@
-#include "Mesh.h"
-#include "DxUtils.h"
+#include "Graphics/Mesh.h"
+#include "Core/DxUtils.h"
 
 ID3D11Buffer* Mesh::GetVertexBuffer() const { return vertexBuffer; }
 ID3D11Buffer* Mesh::GetIndexBuffer() const { return indexBuffer; }

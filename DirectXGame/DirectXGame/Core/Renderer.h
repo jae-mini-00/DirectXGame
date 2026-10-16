@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Scene.h"
+#include "Scene/Scene.h"
 #include <windows.h>
 #include <d3d11.h>
 #include <DirectXMath.h>

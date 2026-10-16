@@ -1,8 +1,8 @@
-#include "Renderer.h"
-#include "GameObject.h"
-#include "Camera.h"
-#include "ModelLoader.h"
-#include "Scene.h"
+#include "Core/Renderer.h"
+#include "Scene/GameObject.h"
+#include "Core/Camera.h"
+#include "Graphics/ModelLoader.h"
+#include "Scene/Scene.h"
 
 #include <chrono>
 
@@ -104,7 +104,7 @@ int WINAPI WinMain
 
     scale = { 0.3f, 0.3f, 0.3f };
     position = { 0.0f, 0.0f, 0.0f };
-    hr = AddModelToScene(renderer, scene, "model.obj", position, scale);
+    hr = AddModelToScene(renderer, scene, "Assets/Barrel/model.obj", position, scale);
     if (FAILED(hr))
     {
         MessageBox(hwnd, L"modle Add Failed", L"Error", MB_OK);
@@ -112,7 +112,7 @@ int WINAPI WinMain
     }
     scale = { 0.01f, 0.01f, 0.01f };
     position = { 3.0f, 0.0f, 0.0f };
-    hr = AddModelToScene(renderer, scene, "chair01_textured.obj", position, scale);
+    hr = AddModelToScene(renderer, scene, "Assets/Chair/chair01_textured.obj", position, scale);
     if (FAILED(hr))
     {
         MessageBox(hwnd, L"Chair Add Failed", L"Error", MB_OK);

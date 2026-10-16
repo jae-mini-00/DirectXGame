@@ -1,11 +1,12 @@
-#include "ModelLoader.h"
+#include "Graphics/ModelLoader.h"
 
-bool ModelLoader::Load(const char* filePath, ModelData& outModel)
+bool ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel)
 {
     Assimp::Importer importer;
+    std::filesystem::path parent_path = filePath.parent_path();
 
     const aiScene* scene = importer.ReadFile(
-        filePath, aiProcess_Triangulate);
+        filePath.string(), aiProcess_Triangulate);
 
     if (scene == nullptr)
     {
@@ -18,7 +19,7 @@ bool ModelLoader::Load(const char* filePath, ModelData& outModel)
     outModel.meshes.clear();
     outModel.materials.clear();
 
-    LoadMaterials(scene, outModel);
+    LoadMaterials(scene, outModel, parent_path);
     LoadMeshes(scene, outModel);
 
     return true;
@@ -81,7 +82,8 @@ MeshData ModelLoader::LoadMesh(const aiMesh* mesh)
 
 #include <string>
 
-void ModelLoader::LoadMaterials(const aiScene* scene, ModelData& outModel)
+void ModelLoader::LoadMaterials(const aiScene* scene, ModelData& outModel
+, const std::filesystem::path& parentPath)
 {
     for (unsigned int i = 0; i < scene->mNumMaterials; ++i)
     {
@@ -100,7 +102,7 @@ void ModelLoader::LoadMaterials(const aiScene* scene, ModelData& outModel)
             aiString texturePath;
 
             if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) == AI_SUCCESS)
-                materialData.texturePath = texturePath.C_Str();
+                materialData.texturePath = (parentPath / texturePath.C_Str()).string();
         }
         outModel.materials.push_back(materialData);
     }
