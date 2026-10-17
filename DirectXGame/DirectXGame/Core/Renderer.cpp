@@ -44,8 +44,6 @@ Renderer::~Renderer()
         device->Release();
 }
 
-#include <stdio.h>
-
 HRESULT Renderer::Initialize(HWND hwnd)
 {
     IDXGIAdapter* pAdapter = nullptr;
@@ -74,7 +72,6 @@ HRESULT Renderer::Initialize(HWND hwnd)
     RETURN_IF_FAILED(CreateMaterialBuffer());
     RETURN_IF_FAILED(CreateLightBuffer());
 
-
     RETURN_IF_FAILED(CreateVertexShader());
     RETURN_IF_FAILED(CreatePixelShader());
 
@@ -99,6 +96,8 @@ void Renderer::BindPixelStage()
     context->PSSetConstantBuffers(1, 1, &lightBuffer);
 }
 
+// TODO: WM_SIZE 발생 시 RenderTarget, DepthBuffer,
+//       Viewport, Camera Projection을 새 창 크기에 맞게 갱신
 D3D11_VIEWPORT Renderer::CreateViewport(HWND hwnd)
 {
     D3D11_VIEWPORT viewport = {};
@@ -238,10 +237,12 @@ HRESULT Renderer::CreateInputLayout(ID3DBlob* shaderBlob)
     return S_OK;
 }
 
+// TODO: Shader/Asset 경로를 한 곳에서 관리하도록 변경
 HRESULT Renderer::CreateVertexShader()
 {
     ID3DBlob* errorBlob = nullptr;
     ID3DBlob* shaderBlob = nullptr;
+    // TODO: Shader 컴파일 실패 시 errorBlob의 내용을 로그로 출력하도록 변경
     RETURN_IF_FAILED_AND_RELEASE(D3DCompileFromFile(L"Shaders/VertexShader.hlsl", nullptr,
         nullptr, "main", "vs_5_0", 0, 0, &shaderBlob, &errorBlob), errorBlob);
     if (errorBlob) {
@@ -265,6 +266,7 @@ HRESULT Renderer::CreatePixelShader()
 {
     ID3DBlob* errorBlob = nullptr;
     ID3DBlob* shaderBlob = nullptr;
+    // TODO: Shader 컴파일 실패 시 errorBlob의 내용을 로그로 출력하도록 변경
     RETURN_IF_FAILED_AND_RELEASE(D3DCompileFromFile(L"Shaders/PixelShader.hlsl", nullptr,
         nullptr, "main", "ps_5_0", 0, 0, &shaderBlob, &errorBlob), errorBlob);
     if (errorBlob) {
@@ -307,6 +309,8 @@ HRESULT Renderer::CreateDepthBuffer(HWND hwnd)
     return S_OK;
 }
 
+// TODO: MatrixBuffer를 PerFrame(View/Projection)과
+//       PerObject(World) Constant Buffer로 분리
 void Renderer::UpdateMatrixBuffer(const DirectX::XMMATRIX& world, const Camera& camera)
 {
     MatrixBuffer matrixData = {};
@@ -355,6 +359,8 @@ void Renderer::UpdateMaterialBuffer(const Material& material)
 
 void Renderer::UpdateLightBuffer()
 {
+    // TODO: Light 데이터를 Renderer 내부 하드코딩이 아닌
+    //       Scene/Light 객체에서 전달하도록 변경
     LightBuffer lightData = {};
 
     lightData.direction = { 1.0f, -1.0f, 1.0f };

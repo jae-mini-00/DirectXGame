@@ -52,28 +52,16 @@ static std::wstring ToWideString(const std::string& str)
     if (str.empty())
         return L"";
 
-    int sizeNeeded = MultiByteToWideChar(
-        CP_UTF8,
-        0,
-        str.c_str(),
-        -1,
-        nullptr,
-        0
-    );
+    int sizeNeeded = MultiByteToWideChar( CP_UTF8,
+        0, str.c_str(), -1, nullptr, 0);
 
     if (sizeNeeded == 0)
         return L"";
 
     std::wstring result(sizeNeeded, L'\0');
 
-    MultiByteToWideChar(
-        CP_UTF8,
-        0,
-        str.c_str(),
-        -1,
-        result.data(),
-        sizeNeeded
-    );
+    MultiByteToWideChar( CP_UTF8,
+        0, str.c_str(), -1, result.data(), sizeNeeded);
 
     result.pop_back();
 
@@ -103,6 +91,8 @@ HRESULT Material::Initialize(ID3D11Device* device,
     samplerDesc.MinLOD = 0;
     samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
+    // TODO: 동일 설정의 SamplerState를 Material마다 생성하지 않고
+    //       Renderer 또는 ResourceManager에서 공유하도록 변경
     RETURN_IF_FAILED(device->CreateSamplerState(
         &samplerDesc, &samplerState));
 

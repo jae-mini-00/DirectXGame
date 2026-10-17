@@ -1,12 +1,11 @@
 #pragma once
 
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-
 #include "Graphics/Mesh.h"
 #include "Graphics/Material.h"
+
+#include <assimp/scene.h>
 #include <filesystem>
+#include <vector>
 
 struct ModelData
 {

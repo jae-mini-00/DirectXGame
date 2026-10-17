@@ -1,13 +1,20 @@
 #include "Graphics/ModelLoader.h"
 
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <Windows.h>
+
 bool ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel)
 {
     Assimp::Importer importer;
     std::filesystem::path parent_path = filePath.parent_path();
 
+    // TODO: Normal이 없는 모델을 위해 aiProcess_GenSmoothNormals 적용 검토
     const aiScene* scene = importer.ReadFile(
         filePath.string(), aiProcess_Triangulate);
 
+    // TODO: ModelLoader에서 MessageBox 의존성을 제거하고
+    //       오류 정보를 상위 계층으로 전달하도록 변경
     if (scene == nullptr)
     {
         MessageBoxA(nullptr, importer.GetErrorString(), 
@@ -26,14 +33,15 @@ bool ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel)
 }
 
 
-/*
-* continue 부분 후에 로그 형식으로 변경
-* MaterialIndex >= scene->mNumMaterials 는 기본 머티리얼로 대체로 변경
-*/
+
+
 void ModelLoader::LoadMeshes(const aiScene* scene, ModelData& outModel)
 {
     for (unsigned int i = 0; i < scene->mNumMeshes; ++i)
     {
+        // TODO: 잘못된 Mesh를 continue로 무시하지 말고 로그를 남기도록 변경
+        // TODO: materialIndex가 scene->mNumMaterials 범위를 벗어나면
+        //       Mesh를 버리지 말고 기본 Material을 사용하도록 변경
         if (scene->mMeshes[i] == nullptr 
             || scene->mMeshes[i]->mNumVertices == 0 || scene->mMeshes[i]->mNumFaces == 0
             || scene->mMeshes[i]->mMaterialIndex >= scene->mNumMaterials)
@@ -79,8 +87,6 @@ MeshData ModelLoader::LoadMesh(const aiMesh* mesh)
 
     return meshData;
 }
-
-#include <string>
 
 void ModelLoader::LoadMaterials(const aiScene* scene, ModelData& outModel
 , const std::filesystem::path& parentPath)

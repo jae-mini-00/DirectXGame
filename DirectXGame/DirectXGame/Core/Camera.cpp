@@ -6,16 +6,7 @@ const DirectX::XMMATRIX& Camera::GetProjection() const { return projection; }
 Camera::Camera(float width, float height)
 {
     distance = 3.0f;
-    DirectX::XMVECTOR eye =
-        DirectX::XMVectorSet(0.0f, 0.0f, -distance, 0.0f);
-
-    DirectX::XMVECTOR target =
-        DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-
-    DirectX::XMVECTOR up =
-        DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
-    view = DirectX::XMMatrixLookAtLH(eye, target, up);
+    UpdateView();
 
     float aspect = width / height;
 

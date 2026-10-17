@@ -4,7 +4,10 @@
 #include "Graphics/ModelLoader.h"
 #include "Scene/Scene.h"
 
-#include <chrono>
+#include <Windows.h>
+#include <DirectXMath.h>
+#include <memory>
+#include <utility>
 
 Camera* gCamera = nullptr;
 
@@ -107,7 +110,7 @@ int WINAPI WinMain
     hr = AddModelToScene(renderer, scene, "Assets/Barrel/model.obj", position, scale);
     if (FAILED(hr))
     {
-        MessageBox(hwnd, L"modle Add Failed", L"Error", MB_OK);
+        MessageBox(hwnd, L"model Add Failed", L"Error", MB_OK);
         return 0;
     }
     scale = { 0.01f, 0.01f, 0.01f };
@@ -126,7 +129,6 @@ int WINAPI WinMain
 
     Camera camera(width, height);
     gCamera = &camera;
-    auto lastTime = std::chrono::steady_clock::now();
     while (msg.message != WM_QUIT)
     {
         if (PeekMessage(&msg, nullptr,
@@ -137,20 +139,8 @@ int WINAPI WinMain
         }
         else
         {
-            auto currentTime = std::chrono::steady_clock::now();
-
-            std::chrono::duration<float> elapsed =
-                currentTime - lastTime;
-
-            float deltaTime = elapsed.count();
-
-            lastTime = currentTime;
-
-            scene.GetObjects()[0]->transform.rotation.y += 30.0f * deltaTime;
             renderer.BeginFrame();
-
             renderer.Draw(scene, camera);
-
             renderer.EndFrame();
         }
     }
