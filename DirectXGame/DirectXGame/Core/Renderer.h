@@ -76,6 +76,7 @@ class Renderer
         D3D11_VIEWPORT CreateViewport(HWND hwnd);
         HRESULT CreateRenderTarget();
         HRESULT CreateInputLayout(ID3DBlob* shaderBlob);
+        HRESULT HandleShaderCompileResult(HRESULT hr, ID3DBlob*& errorBlob, ID3DBlob*& shaderBlob);
         HRESULT CreateVertexShader();
         HRESULT CreatePixelShader();
         HRESULT CreateMatrixBuffer();
@@ -87,5 +88,5 @@ class Renderer
         void UpdateMaterialBuffer(const Material& material);
         void UpdateMatrixBuffer(const DirectX::XMMATRIX& world, const Camera& camera);
         void UpdateTransformBuffer(const Transform& transform, const Camera& camera);
-        void Clear();
+        void ClearFrame();
 };

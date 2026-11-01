@@ -33,5 +33,6 @@ VSOutput main(VSInput input)
     output.uv = input.uv;
     output.normal = normalize(normal.xyz);
 
+    asdasd
     return output;
 }

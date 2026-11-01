@@ -2,6 +2,7 @@
 #include "Scene/GameObject.h"
 #include "Core/DxUtils.h"
 #include "Core/Camera.h"
+#include "Core/Logger/Logger.h"
 #include "Graphics/Material.h"
 
 #pragma comment(lib, "d3dcompiler.lib")
@@ -237,18 +238,39 @@ HRESULT Renderer::CreateInputLayout(ID3DBlob* shaderBlob)
     return S_OK;
 }
 
+HRESULT Renderer::HandleShaderCompileResult(HRESULT hr, ID3DBlob*& errorBlob, ID3DBlob*& shaderBlob)
+{
+    if (FAILED(hr)) {
+        if (errorBlob) {
+            Logger::Error("Renderer", static_cast<const char*>(errorBlob->GetBufferPointer()));
+            errorBlob->Release();
+            errorBlob = nullptr;
+        }
+        if (shaderBlob) {
+            shaderBlob->Release();
+            shaderBlob = nullptr;
+        }
+        return hr;
+    }
+    else if (errorBlob) {
+        Logger::Warning("Renderer", static_cast<const char*>(errorBlob->GetBufferPointer()));
+        errorBlob->Release();
+        errorBlob = nullptr;
+    }
+
+    return hr;
+}
+
 // TODO: Shader/Asset 경로를 한 곳에서 관리하도록 변경
 HRESULT Renderer::CreateVertexShader()
 {
     ID3DBlob* errorBlob = nullptr;
     ID3DBlob* shaderBlob = nullptr;
-    // TODO: Shader 컴파일 실패 시 errorBlob의 내용을 로그로 출력하도록 변경
-    RETURN_IF_FAILED_AND_RELEASE(D3DCompileFromFile(L"Shaders/VertexShader.hlsl", nullptr,
-        nullptr, "main", "vs_5_0", 0, 0, &shaderBlob, &errorBlob), errorBlob);
-    if (errorBlob) {
-        errorBlob->Release();
-        errorBlob = nullptr;
-    }
+    HRESULT hr = D3DCompileFromFile(L"Shaders/VertexShader.hlsl", nullptr,
+        nullptr, "main", "vs_5_0", 0, 0, &shaderBlob, &errorBlob);
+
+
+    RETURN_IF_FAILED(HandleShaderCompileResult(hr, errorBlob, shaderBlob));
 
     RETURN_IF_FAILED_AND_RELEASE(device->CreateVertexShader(shaderBlob->GetBufferPointer(),
         shaderBlob->GetBufferSize(), nullptr, &vertexShader), shaderBlob);
@@ -266,13 +288,11 @@ HRESULT Renderer::CreatePixelShader()
 {
     ID3DBlob* errorBlob = nullptr;
     ID3DBlob* shaderBlob = nullptr;
-    // TODO: Shader 컴파일 실패 시 errorBlob의 내용을 로그로 출력하도록 변경
-    RETURN_IF_FAILED_AND_RELEASE(D3DCompileFromFile(L"Shaders/PixelShader.hlsl", nullptr,
-        nullptr, "main", "ps_5_0", 0, 0, &shaderBlob, &errorBlob), errorBlob);
-    if (errorBlob) {
-        errorBlob->Release();
-        errorBlob = nullptr;
-    }
+    HRESULT hr = D3DCompileFromFile(L"Shaders/PixelShader.hlsl", nullptr,
+        nullptr, "main", "ps_5_0", 0, 0, &shaderBlob, &errorBlob);
+
+    RETURN_IF_FAILED(HandleShaderCompileResult(hr, errorBlob, shaderBlob));
+
     RETURN_IF_FAILED_AND_RELEASE(device->CreatePixelShader(shaderBlob->GetBufferPointer(),
         shaderBlob->GetBufferSize(), nullptr, &pixelShader), shaderBlob);
     shaderBlob->Release();
@@ -373,7 +393,7 @@ void Renderer::UpdateLightBuffer()
 }
 
 
-void Renderer::Clear() {
+void Renderer::ClearFrame() {
     float rgbaColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
     context->ClearRenderTargetView(renderTargetView, rgbaColor);
@@ -383,7 +403,7 @@ void Renderer::Clear() {
 
 void Renderer::BeginFrame()
 {
-    Clear();
+    ClearFrame();
 }
 
 void Renderer::Draw(const Scene& scene, const Camera& camera)
