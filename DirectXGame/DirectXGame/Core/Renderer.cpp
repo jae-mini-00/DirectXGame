@@ -4,6 +4,7 @@
 #include "Core/Camera.h"
 #include "Core/Logger/Logger.h"
 #include "Graphics/Material.h"
+#include "Core/Paths.h"
 
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "d3d11.lib")
@@ -261,12 +262,11 @@ HRESULT Renderer::HandleShaderCompileResult(HRESULT hr, ID3DBlob*& errorBlob, ID
     return hr;
 }
 
-// TODO: Shader/Asset 경로를 한 곳에서 관리하도록 변경
 HRESULT Renderer::CreateVertexShader()
 {
     ID3DBlob* errorBlob = nullptr;
     ID3DBlob* shaderBlob = nullptr;
-    HRESULT hr = D3DCompileFromFile(L"Shaders/VertexShader.hlsl", nullptr,
+    HRESULT hr = D3DCompileFromFile(Paths::VertexShader, nullptr,
         nullptr, "main", "vs_5_0", 0, 0, &shaderBlob, &errorBlob);
 
 
@@ -288,7 +288,7 @@ HRESULT Renderer::CreatePixelShader()
 {
     ID3DBlob* errorBlob = nullptr;
     ID3DBlob* shaderBlob = nullptr;
-    HRESULT hr = D3DCompileFromFile(L"Shaders/PixelShader.hlsl", nullptr,
+    HRESULT hr = D3DCompileFromFile(Paths::PixelShader, nullptr,
         nullptr, "main", "ps_5_0", 0, 0, &shaderBlob, &errorBlob);
 
     RETURN_IF_FAILED(HandleShaderCompileResult(hr, errorBlob, shaderBlob));
@@ -409,10 +409,10 @@ void Renderer::BeginFrame()
 void Renderer::Draw(const Scene& scene, const Camera& camera)
 {
     UpdateLightBuffer();
-    const std::vector<std::unique_ptr<GameObject>>& obs = scene.GetObjects();
 
-    for (const std::unique_ptr<GameObject>& object : obs)
+    for (std::size_t i = 0; i < scene.size(); ++i)
     {
+        const GameObject* object = scene[i];
         UpdateTransformBuffer(object->transform, camera);
 
         const std::vector<Mesh>& meshes = object->model.GetMeshes();

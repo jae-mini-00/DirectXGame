@@ -80,6 +80,9 @@
     <ClInclude Include="Graphics\ModelLoadResult.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Paths.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\PixelShader.hlsl">

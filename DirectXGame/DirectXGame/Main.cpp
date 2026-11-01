@@ -4,6 +4,7 @@
 #include "Graphics/ModelLoader.h"
 #include "Scene/Scene.h"
 #include "Core/Logger/Logger.h"
+#include "Core/Paths.h"
 
 #include <Windows.h>
 #include <DirectXMath.h>
@@ -110,7 +111,7 @@ int WINAPI WinMain
 
     scale = { 0.3f, 0.3f, 0.3f };
     position = { 0.0f, 0.0f, 0.0f };
-    hr = AddModelToScene(renderer, scene, "Assets/Barrel/model.obj", position, scale);
+    hr = AddModelToScene(renderer, scene, Paths::BarrelModel, position, scale);
     if (FAILED(hr))
     {
         MessageBox(hwnd, L"model Add Failed", L"Error", MB_OK);
@@ -118,7 +119,7 @@ int WINAPI WinMain
     }
     scale = { 0.01f, 0.01f, 0.01f };
     position = { 3.0f, 0.0f, 0.0f };
-    hr = AddModelToScene(renderer, scene, "Assets/Chair/chair01_textured.obj", position, scale);
+    hr = AddModelToScene(renderer, scene, Paths::ChairModel, position, scale);
     if (FAILED(hr))
     {
         MessageBox(hwnd, L"Chair Add Failed", L"Error", MB_OK);

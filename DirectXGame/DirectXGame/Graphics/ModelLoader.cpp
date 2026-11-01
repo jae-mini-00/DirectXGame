@@ -10,9 +10,8 @@ LoadResult ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel
     Assimp::Importer importer;
     std::filesystem::path parent_path = filePath.parent_path();
 
-    // TODO: Normal이 없는 모델을 위해 aiProcess_GenSmoothNormals 적용 검토
-    const aiScene* scene = importer.ReadFile(
-        filePath.string(), aiProcess_Triangulate);
+    const aiScene* scene = importer.ReadFile(filePath.string(), 
+        aiProcess_Triangulate | aiProcess_GenSmoothNormals);
 
     if (scene == nullptr) {
         lr.success = false;
@@ -35,16 +34,14 @@ LoadResult ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel
     return lr;
 }
 
-
-
-
 int ModelLoader::LoadMeshes(const aiScene* scene, ModelData& outModel)
 {
     int success = 0;
+    unsigned int DefaultMateriaIndex = static_cast<unsigned int>(outModel.materials.size()) - 1;
 
     for (unsigned int i = 0; i < scene->mNumMeshes; ++i)
     {
-        unsigned int resolvedMaterialIndex = static_cast<unsigned int>(outModel.materials.size()) - 1;
+        unsigned int resolvedMaterialIndex = DefaultMateriaIndex;
         if (scene->mMeshes[i] == nullptr) {
             Logger::Error("ModelLoader", "Mesh pointer is null. Skipping this mesh.");
             continue;

@@ -147,6 +147,7 @@
     <ClInclude Include="Core\Camera.h" />
     <ClInclude Include="Core\DxUtils.h" />
     <ClInclude Include="Core\Logger\Logger.h" />
+    <ClInclude Include="Core\Paths.h" />
     <ClInclude Include="Core\Renderer.h" />
     <ClInclude Include="Graphics\Material.h" />
     <ClInclude Include="Graphics\Mesh.h" />
