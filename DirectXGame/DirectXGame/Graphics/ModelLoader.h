@@ -2,6 +2,7 @@
 
 #include "Graphics/Mesh.h"
 #include "Graphics/Material.h"
+#include "Graphics/ModelLoadResult.h"
 
 #include <assimp/scene.h>
 #include <filesystem>
@@ -16,11 +17,11 @@ struct ModelData
 class ModelLoader 
 {
 	public:
-		static bool Load(std::filesystem::path filePath, ModelData& outModel);
+		static LoadResult Load(std::filesystem::path filePath, ModelData& outModel);
 
 	private:
 		static void LoadMaterials(const aiScene* scene, ModelData& outModel, 
 			const std::filesystem::path& parentPath);
-		static void LoadMeshes(const aiScene* scene, ModelData& outModel);
-		static MeshData LoadMesh(const aiMesh* mesh);
+		static int LoadMeshes(const aiScene* scene, ModelData& outModel);
+		static MeshData LoadMesh(const aiMesh* mesh, unsigned int materialIndex);
 };

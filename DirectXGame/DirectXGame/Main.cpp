@@ -3,6 +3,7 @@
 #include "Core/Camera.h"
 #include "Graphics/ModelLoader.h"
 #include "Scene/Scene.h"
+#include "Core/Logger/Logger.h"
 
 #include <Windows.h>
 #include <DirectXMath.h>
@@ -47,9 +48,11 @@ HRESULT AddModelToScene(const Renderer& renderer, Scene& scene, const char* file
     DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 scale)
 {
     ModelData modelData;
-
-    if (!ModelLoader::Load(filePath, modelData))
+    LoadResult lr = ModelLoader::Load(filePath, modelData);
+    if (!lr.success) {
+        Logger::Error("AddModelToScene", lr.message.c_str());
         return E_FAIL;
+    }
     std::unique_ptr<GameObject> model = std::make_unique<GameObject>();
     model->transform.scale = scale;
     model->transform.position = position;

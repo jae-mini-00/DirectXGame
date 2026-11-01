@@ -1,11 +1,12 @@
 #include "Graphics/ModelLoader.h"
+#include "Core/Logger/Logger.h"
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
-#include <Windows.h>
 
-bool ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel)
+LoadResult ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel)
 {
+    LoadResult lr = {true, LoadError::None, ""};
     Assimp::Importer importer;
     std::filesystem::path parent_path = filePath.parent_path();
 
@@ -13,49 +14,60 @@ bool ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel)
     const aiScene* scene = importer.ReadFile(
         filePath.string(), aiProcess_Triangulate);
 
-    // TODO: ModelLoader에서 MessageBox 의존성을 제거하고
-    //       오류 정보를 상위 계층으로 전달하도록 변경
-    if (scene == nullptr)
-    {
-        MessageBoxA(nullptr, importer.GetErrorString(), 
-            "Assimp Error", MB_OK);
+    if (scene == nullptr) {
+        lr.success = false;
+        lr.error = LoadError::FileReadFailed;
+        lr.message = importer.GetErrorString();
 
-        return false;
+        return lr;
     }
 
     outModel.meshes.clear();
     outModel.materials.clear();
 
     LoadMaterials(scene, outModel, parent_path);
-    LoadMeshes(scene, outModel);
+    if (LoadMeshes(scene, outModel) <= 0) {
+        lr.success = false;
+        lr.error = LoadError::NoValidMesh;
+        lr.message = "Model contains no valid meshes.";
+    }
 
-    return true;
+    return lr;
 }
 
 
 
 
-void ModelLoader::LoadMeshes(const aiScene* scene, ModelData& outModel)
+int ModelLoader::LoadMeshes(const aiScene* scene, ModelData& outModel)
 {
+    int success = 0;
+
     for (unsigned int i = 0; i < scene->mNumMeshes; ++i)
     {
-        // TODO: 잘못된 Mesh를 continue로 무시하지 말고 로그를 남기도록 변경
-        // TODO: materialIndex가 scene->mNumMaterials 범위를 벗어나면
-        //       Mesh를 버리지 말고 기본 Material을 사용하도록 변경
-        if (scene->mMeshes[i] == nullptr 
-            || scene->mMeshes[i]->mNumVertices == 0 || scene->mMeshes[i]->mNumFaces == 0
-            || scene->mMeshes[i]->mMaterialIndex >= scene->mNumMaterials)
+        unsigned int resolvedMaterialIndex = static_cast<unsigned int>(outModel.materials.size()) - 1;
+        if (scene->mMeshes[i] == nullptr) {
+            Logger::Error("ModelLoader", "Mesh pointer is null. Skipping this mesh.");
             continue;
-
-        outModel.meshes.push_back(LoadMesh(scene->mMeshes[i]));
+        } else if (scene->mMeshes[i]->mNumVertices == 0 || scene->mMeshes[i]->mNumFaces == 0) {
+            Logger::Warning("ModelLoader", "Mesh has no vertices or faces. Skipping this mesh.");
+            continue;
+        }
+        else if (scene->mMeshes[i]->mMaterialIndex >= scene->mNumMaterials) {
+            Logger::Warning("ModelLoader", "Material index is out of range. Using default material.");
+        } else
+            resolvedMaterialIndex = scene->mMeshes[i]->mMaterialIndex;
+        
+        outModel.meshes.push_back(LoadMesh(scene->mMeshes[i], resolvedMaterialIndex));
+        success++;
     }
+    return success;
 }
 
-MeshData ModelLoader::LoadMesh(const aiMesh* mesh)
+MeshData ModelLoader::LoadMesh(const aiMesh* mesh, unsigned int materialIndex)
 {
     MeshData meshData = {};
 
-    meshData.materialIndex = mesh->mMaterialIndex;
+    meshData.materialIndex = materialIndex;
     for (unsigned int j = 0; j < mesh->mNumVertices; ++j)
     {
         Vertex vertex = {};
@@ -112,4 +124,6 @@ void ModelLoader::LoadMaterials(const aiScene* scene, ModelData& outModel
         }
         outModel.materials.push_back(materialData);
     }
+    MaterialData defaultMaterial;
+    outModel.materials.push_back(defaultMaterial);
 }
