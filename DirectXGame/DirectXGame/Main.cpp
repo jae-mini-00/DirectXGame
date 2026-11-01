@@ -46,7 +46,7 @@ LRESULT CALLBACK WindowProc
 
 
 HRESULT AddModelToScene(const Renderer& renderer, Scene& scene, const char* filePath,
-    DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 scale)
+    DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 scale, DirectX::XMFLOAT3 rotation)
 {
     ModelData modelData;
     LoadResult lr = ModelLoader::Load(filePath, modelData);
@@ -57,6 +57,7 @@ HRESULT AddModelToScene(const Renderer& renderer, Scene& scene, const char* file
     std::unique_ptr<GameObject> model = std::make_unique<GameObject>();
     model->transform.scale = scale;
     model->transform.position = position;
+    model->transform.rotation = rotation;
     HRESULT modelHr = model->model.Initialize(
         renderer.GetDevice(), renderer.GetContext(),
         modelData);
@@ -108,21 +109,16 @@ int WINAPI WinMain
     Scene scene;
     DirectX::XMFLOAT3 scale;
     DirectX::XMFLOAT3 position;
+    DirectX::XMFLOAT3 rotation;
 
-    scale = { 0.3f, 0.3f, 0.3f };
-    position = { 0.0f, 0.0f, 0.0f };
-    hr = AddModelToScene(renderer, scene, Paths::BarrelModel, position, scale);
+
+    scale = { 0.15f, 0.15f, 0.15f };
+    position = { 0.0f, -1.0f, 0.0f };
+    rotation = { -90.0f, 0.0f, 180.0f };
+    hr = AddModelToScene(renderer, scene, Paths::ManModel, position, scale, rotation);
     if (FAILED(hr))
     {
-        MessageBox(hwnd, L"model Add Failed", L"Error", MB_OK);
-        return 0;
-    }
-    scale = { 0.01f, 0.01f, 0.01f };
-    position = { 3.0f, 0.0f, 0.0f };
-    hr = AddModelToScene(renderer, scene, Paths::ChairModel, position, scale);
-    if (FAILED(hr))
-    {
-        MessageBox(hwnd, L"Chair Add Failed", L"Error", MB_OK);
+        MessageBox(hwnd, L"ManModel Add Failed", L"Error", MB_OK);
         return 0;
     }
 

@@ -3,15 +3,22 @@
 #include "Graphics/Mesh.h"
 #include "Graphics/Material.h"
 #include "Graphics/ModelLoadResult.h"
+#include "Graphics/Skeleton.h"
 
-#include <assimp/scene.h>
 #include <filesystem>
 #include <vector>
+#include <assimp/matrix4x4.h>
+
+struct aiScene;
+struct aiMesh;
+struct aiBone;
+struct aiNode;
 
 struct ModelData
 {
 	std::vector<MeshData> meshes;
 	std::vector<MaterialData> materials;
+	SkeletonData skeleton;
 };
 
 class ModelLoader 
@@ -23,5 +30,8 @@ class ModelLoader
 		static void LoadMaterials(const aiScene* scene, ModelData& outModel, 
 			const std::filesystem::path& parentPath);
 		static int LoadMeshes(const aiScene* scene, ModelData& outModel);
-		static MeshData LoadMesh(const aiMesh* mesh, unsigned int materialIndex);
+		static MeshData LoadMesh(const aiMesh* mesh, unsigned int materialIndex, SkeletonData& skeleton);
+		static bool AddBoneInfluence(Vertex& vertex, int boneIndex, float weight);
+		static DirectX::XMFLOAT4X4 ConvertMatrix(const aiMatrix4x4& matrix);
+		static void ResolveBoneParents(const aiNode* node, SkeletonData& skeleton, int parentBoneIndex);
 };

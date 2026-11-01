@@ -7,4 +7,5 @@ namespace Paths
 
     constexpr const char* ChairModel = "Assets/Chair/chair01_textured.obj";
     constexpr const char* BarrelModel = "Assets/Barrel/model.obj";
+    constexpr const char* ManModel = "Assets/Man/man.fbx";
 }

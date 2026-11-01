@@ -8,6 +8,8 @@ struct Vertex
     float x, y, z;
     float u, v;
     float nx, ny, nz;
+    int boneIndices[4] = { -1, -1, -1, -1 };
+    float boneWeights[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 };
 
 struct MeshData
