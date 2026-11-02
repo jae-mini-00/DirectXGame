@@ -27,6 +27,7 @@ LoadResult ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel
     outModel.materials.clear();
     outModel.skeleton.bones.clear();
     outModel.skeleton.nameToIndex.clear();
+    outModel.animationClips.clear();
 
     LoadMaterials(scene, outModel, parent_path);
     if (LoadMeshes(scene, outModel) <= 0)
@@ -35,9 +36,13 @@ LoadResult ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel
         lr.error = LoadError::NoValidMesh;
         lr.message = "Model contains no valid meshes.";
     }
-    else if (scene->mRootNode != nullptr)
-        ResolveBoneParents(scene->mRootNode,
-            outModel.skeleton, -1);
+    else
+    {
+        if (scene->mRootNode != nullptr)
+            ResolveBoneParents(scene->mRootNode,
+                outModel.skeleton, -1);
+        LoadAnimations(scene, outModel);
+    }
 
     return lr;
 }
@@ -240,11 +245,79 @@ void ModelLoader::LoadBones(const aiMesh* mesh, MeshData& meshData, SkeletonData
 
 void ModelLoader::LoadIndices(const aiMesh* mesh, MeshData& meshData)
 {
-    for (unsigned int j = 0; j < mesh->mNumFaces; ++j)
+    for (unsigned int i = 0; i < mesh->mNumFaces; ++i)
     {
-        const aiFace& face = mesh->mFaces[j];
+        const aiFace& face = mesh->mFaces[i];
 
-        for (unsigned int k = 0; k < face.mNumIndices; ++k)
-            meshData.indices.push_back(face.mIndices[k]);
+        for (unsigned int j = 0; j < face.mNumIndices; ++j)
+            meshData.indices.push_back(face.mIndices[j]);
+    }
+}
+
+void ModelLoader::LoadAnimations(const aiScene* scene, ModelData& outModel)
+{
+    // TODO: scene->mAnimations[i]가 nullptr인지 검사하고,
+    // 유효하지 않은 Animation은 건너뛰거나 로딩 실패로 처리한다.
+
+    // TODO: animation->mChannels[j]가 nullptr인지 검사하고,
+    // 유효하지 않은 Channel을 처리한다.
+
+    // TODO: AnimationChannel과 AnimationClip을 vector에 추가할 때
+    // 불필요한 데이터 복사를 줄이도록 std::move 적용을 검토한다.
+
+    // TODO: AnimationClip 로딩 중 데이터 오류가 발생했을 때
+    // LoadResult를 통해 실패 원인과 메시지를 전달하도록 개선한다.
+    for (unsigned int i = 0; i < scene->mNumAnimations; ++i)
+    {
+        AnimationClip clip = {};
+        const aiAnimation* animation = scene->mAnimations[i];
+
+        clip.name = animation->mName.C_Str();
+        clip.duration = animation->mDuration;
+        clip.ticksPerSecond = animation->mTicksPerSecond;
+
+        for (unsigned int j = 0; j < animation->mNumChannels; ++j)
+        {
+            AnimationChannel channel = {};
+            const aiNodeAnim* node = animation->mChannels[j];
+
+            channel.name = node->mNodeName.C_Str();
+
+            for (unsigned int k = 0; k < node->mNumPositionKeys; ++k)
+            {
+                PositionKeyframe pframe = {};
+
+                pframe.time = node->mPositionKeys[k].mTime;
+                pframe.position.x = node->mPositionKeys[k].mValue.x;
+                pframe.position.y = node->mPositionKeys[k].mValue.y;
+                pframe.position.z = node->mPositionKeys[k].mValue.z;
+                channel.positions.push_back(pframe);
+            }
+
+            for (unsigned int k = 0; k < node->mNumRotationKeys; ++k)
+            {
+                RotationKeyframe rframe = {};
+
+                rframe.time = node->mRotationKeys[k].mTime;
+                rframe.rotation.x = node->mRotationKeys[k].mValue.x;
+                rframe.rotation.y = node->mRotationKeys[k].mValue.y;
+                rframe.rotation.z = node->mRotationKeys[k].mValue.z;
+                rframe.rotation.w = node->mRotationKeys[k].mValue.w;
+                channel.rotations.push_back(rframe);
+            }
+
+            for (unsigned int k = 0; k < node->mNumScalingKeys; ++k)
+            {
+                ScaleKeyframe sframe = {};
+
+                sframe.time = node->mScalingKeys[k].mTime;
+                sframe.scale.x = node->mScalingKeys[k].mValue.x;
+                sframe.scale.y = node->mScalingKeys[k].mValue.y;
+                sframe.scale.z = node->mScalingKeys[k].mValue.z;
+                channel.scales.push_back(sframe);
+            }
+            clip.channels.push_back(channel);
+        }
+        outModel.animationClips.push_back(clip);
     }
 }

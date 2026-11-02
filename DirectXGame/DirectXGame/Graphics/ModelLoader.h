@@ -19,7 +19,7 @@ struct ModelData
 {
 	std::vector<MeshData> meshes;
 	std::vector<MaterialData> materials;
-	std::vector<AnimationClip> animationclips;
+	std::vector<AnimationClip> animationClips;
 	SkeletonData skeleton;
 };
 
@@ -39,4 +39,5 @@ class ModelLoader
 		static void LoadVertices(const aiMesh* mesh, MeshData& meshData);
 		static void LoadBones(const aiMesh* mesh, MeshData& meshData, SkeletonData& skeleton);
 		static void LoadIndices(const aiMesh* mesh,	MeshData& meshData);
+		static void LoadAnimations(const aiScene* scene, ModelData& outModel);
 };
