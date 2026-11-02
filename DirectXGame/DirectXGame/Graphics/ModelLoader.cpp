@@ -76,73 +76,9 @@ MeshData ModelLoader::LoadMesh(const aiMesh* mesh, unsigned int materialIndex, S
     MeshData meshData = {};
 
     meshData.materialIndex = materialIndex;
-    for (unsigned int j = 0; j < mesh->mNumVertices; ++j)
-    {
-        Vertex vertex = {};
-
-        vertex.x = mesh->mVertices[j].x;
-        vertex.y = mesh->mVertices[j].y;
-        vertex.z = mesh->mVertices[j].z;
-        if (mesh->HasTextureCoords(0))
-        {
-            vertex.u = mesh->mTextureCoords[0][j].x;
-            vertex.v = mesh->mTextureCoords[0][j].y;
-        }
-        if (mesh->HasNormals())
-        {
-            vertex.nx = mesh->mNormals[j].x;
-            vertex.ny = mesh->mNormals[j].y;
-            vertex.nz = mesh->mNormals[j].z;
-        }
-        meshData.vertices.push_back(vertex);
-    }
-
-    for (unsigned int i = 0; i < mesh->mNumBones; ++i)
-    {
-        const aiBone* bone = mesh->mBones[i];
-        const char* name = bone->mName.C_Str();
-        int boneIndex;
-
-        if (skeleton.nameToIndex.find(name) == skeleton.nameToIndex.end())
-        {
-            BoneData bonedata = {};
-            boneIndex = static_cast<int>(skeleton.bones.size());
-
-            bonedata.name = name;
-            bonedata.offsetMatrix = ConvertMatrix(bone->mOffsetMatrix);
-            bonedata.parentIndex = -1;
-
-            skeleton.nameToIndex[name] = boneIndex;
-            skeleton.bones.push_back(bonedata);
-        }
-        else
-            boneIndex = skeleton.nameToIndex[name];
-
-        int fail = 0;
-        for (unsigned int j = 0; j < bone->mNumWeights; ++j)
-        {
-            unsigned int vertexId = bone->mWeights[j].mVertexId;
-
-            // TODO: 정점 하나가 4개를 초과하는 Bone의 영향을 받을 경우,
-            // 가중치가 가장 큰 4개만 남기도록 처리한다.
-
-            // TODO: Vertex Bone Weight 합계가 1이 되도록 정규화한다.
-
-            // TODO: Assimp / DirectX 행렬 규약 및 변환 결과를 검증한다.
-            if (vertexId < meshData.vertices.size())
-                if (!AddBoneInfluence(meshData.vertices[vertexId],
-                    boneIndex, bone->mWeights[j].mWeight))
-                    fail++;
-        }
-    }
-
-    for (unsigned int j = 0; j < mesh->mNumFaces; ++j)
-    {
-        const aiFace& face = mesh->mFaces[j];
-
-        for (unsigned int k = 0; k < face.mNumIndices; ++k)
-            meshData.indices.push_back(face.mIndices[k]);
-    }
+    LoadVertices(mesh, meshData);
+    LoadBones(mesh, meshData, skeleton);
+    LoadIndices(mesh, meshData);
 
     return meshData;
 }
@@ -236,4 +172,79 @@ void ModelLoader::ResolveBoneParents(const aiNode* node, SkeletonData& skeleton,
     for (unsigned int i = 0; i < node->mNumChildren; ++i)
         ResolveBoneParents(node->mChildren[i],
             skeleton, parentBoneIndex);
+}
+
+void ModelLoader::LoadVertices(const aiMesh* mesh, MeshData& meshData)
+{
+    for (unsigned int j = 0; j < mesh->mNumVertices; ++j)
+    {
+        Vertex vertex = {};
+
+        vertex.x = mesh->mVertices[j].x;
+        vertex.y = mesh->mVertices[j].y;
+        vertex.z = mesh->mVertices[j].z;
+        if (mesh->HasTextureCoords(0))
+        {
+            vertex.u = mesh->mTextureCoords[0][j].x;
+            vertex.v = mesh->mTextureCoords[0][j].y;
+        }
+        if (mesh->HasNormals())
+        {
+            vertex.nx = mesh->mNormals[j].x;
+            vertex.ny = mesh->mNormals[j].y;
+            vertex.nz = mesh->mNormals[j].z;
+        }
+        meshData.vertices.push_back(vertex);
+    }
+}
+
+void ModelLoader::LoadBones(const aiMesh* mesh, MeshData& meshData, SkeletonData& skeleton)
+{
+    for (unsigned int i = 0; i < mesh->mNumBones; ++i)
+    {
+        const aiBone* bone = mesh->mBones[i];
+        const char* name = bone->mName.C_Str();
+        int boneIndex;
+
+        if (skeleton.nameToIndex.find(name) == skeleton.nameToIndex.end())
+        {
+            BoneData bonedata = {};
+            boneIndex = static_cast<int>(skeleton.bones.size());
+
+            bonedata.name = name;
+            bonedata.offsetMatrix = ConvertMatrix(bone->mOffsetMatrix);
+            bonedata.parentIndex = -1;
+
+            skeleton.nameToIndex[name] = boneIndex;
+            skeleton.bones.push_back(bonedata);
+        }
+        else
+            boneIndex = skeleton.nameToIndex[name];
+
+        for (unsigned int j = 0; j < bone->mNumWeights; ++j)
+        {
+            unsigned int vertexId = bone->mWeights[j].mVertexId;
+
+            // TODO: 정점 하나가 4개를 초과하는 Bone의 영향을 받을 경우,
+            // 가중치가 가장 큰 4개만 남기도록 처리한다.
+
+            // TODO: Vertex Bone Weight 합계가 1이 되도록 정규화한다.
+
+            // TODO: Assimp / DirectX 행렬 규약 및 변환 결과를 검증한다.
+            if (vertexId < meshData.vertices.size())
+                AddBoneInfluence(meshData.vertices[vertexId],
+                    boneIndex, bone->mWeights[j].mWeight);
+        }
+    }
+}
+
+void ModelLoader::LoadIndices(const aiMesh* mesh, MeshData& meshData)
+{
+    for (unsigned int j = 0; j < mesh->mNumFaces; ++j)
+    {
+        const aiFace& face = mesh->mFaces[j];
+
+        for (unsigned int k = 0; k < face.mNumIndices; ++k)
+            meshData.indices.push_back(face.mIndices[k]);
+    }
 }

@@ -4,6 +4,7 @@
 #include "Graphics/Material.h"
 #include "Graphics/ModelLoadResult.h"
 #include "Graphics/Skeleton.h"
+#include "Graphics/AnimationClip.h"
 
 #include <filesystem>
 #include <vector>
@@ -18,6 +19,7 @@ struct ModelData
 {
 	std::vector<MeshData> meshes;
 	std::vector<MaterialData> materials;
+	std::vector<AnimationClip> animationclips;
 	SkeletonData skeleton;
 };
 
@@ -34,4 +36,7 @@ class ModelLoader
 		static bool AddBoneInfluence(Vertex& vertex, int boneIndex, float weight);
 		static DirectX::XMFLOAT4X4 ConvertMatrix(const aiMatrix4x4& matrix);
 		static void ResolveBoneParents(const aiNode* node, SkeletonData& skeleton, int parentBoneIndex);
+		static void LoadVertices(const aiMesh* mesh, MeshData& meshData);
+		static void LoadBones(const aiMesh* mesh, MeshData& meshData, SkeletonData& skeleton);
+		static void LoadIndices(const aiMesh* mesh,	MeshData& meshData);
 };
