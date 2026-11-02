@@ -128,12 +128,10 @@
     <ClCompile Include="Core\Camera.cpp" />
     <ClCompile Include="Core\Logger\Logger.cpp" />
     <ClCompile Include="Core\Renderer.cpp" />
-    <ClCompile Include="Graphics\AnimationClip.cpp" />
     <ClCompile Include="Graphics\Material.cpp" />
     <ClCompile Include="Graphics\Mesh.cpp" />
     <ClCompile Include="Graphics\Model.cpp" />
     <ClCompile Include="Graphics\ModelLoader.cpp" />
-    <ClCompile Include="Graphics\Skeleton.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Scene\Scene.cpp" />
   </ItemGroup>
@@ -157,7 +155,7 @@
     <ClInclude Include="Graphics\Model.h" />
     <ClInclude Include="Graphics\ModelLoader.h" />
     <ClInclude Include="Graphics\ModelLoadResult.h" />
-    <ClInclude Include="Graphics\Skeleton.h" />
+    <ClInclude Include="Graphics\SkeletonData.h" />
     <ClInclude Include="Scene\GameObject.h" />
     <ClInclude Include="Scene\Scene.h" />
   </ItemGroup>

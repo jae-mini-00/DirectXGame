@@ -3,7 +3,7 @@
 #include "Graphics/Mesh.h"
 #include "Graphics/Material.h"
 #include "Graphics/ModelLoadResult.h"
-#include "Graphics/Skeleton.h"
+#include "Graphics/SkeletonData.h"
 #include "Graphics/AnimationClip.h"
 
 #include <filesystem>

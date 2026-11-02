@@ -48,9 +48,6 @@
     <ClCompile Include="Scene\Scene.cpp">
       <Filter>소스 파일\Scene</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\AnimationClip.cpp">
-      <Filter>소스 파일\Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="Graphics\Material.cpp">
       <Filter>소스 파일\Graphics</Filter>
     </ClCompile>
@@ -61,9 +58,6 @@
       <Filter>소스 파일\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\ModelLoader.cpp">
-      <Filter>소스 파일\Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Skeleton.cpp">
       <Filter>소스 파일\Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Core\Camera.cpp">
@@ -89,7 +83,7 @@
     <ClInclude Include="Graphics\ModelLoader.h">
       <Filter>헤더 파일\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Skeleton.h">
+    <ClInclude Include="Graphics\SkeletonData.h">
       <Filter>헤더 파일\Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\Mesh.h">

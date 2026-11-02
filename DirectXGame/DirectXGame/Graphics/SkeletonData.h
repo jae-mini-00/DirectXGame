@@ -18,10 +18,3 @@ struct SkeletonData
     std::vector<BoneData> bones;
     std::unordered_map<std::string, int> nameToIndex;
 };
-
-class Skeleton
-{
-    private:
-        std::vector<BoneData> bones;
-        std::unordered_map<std::string, int> boneNameToIndex;
-};

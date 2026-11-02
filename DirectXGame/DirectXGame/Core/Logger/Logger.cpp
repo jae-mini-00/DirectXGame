@@ -1,6 +1,6 @@
 #include "Logger.h"
 #include "Graphics/AnimationClip.h"
-#include "Graphics/Skeleton.h"
+#include "Graphics/SkeletonData.h"
 
 #include <string>
 #include <Windows.h>
