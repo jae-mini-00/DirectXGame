@@ -69,6 +69,9 @@
     <ClCompile Include="Core\Logger\Logger.cpp">
       <Filter>소스 파일\Core\Logger</Filter>
     </ClCompile>
+    <ClCompile Include="Graphics\Animator.cpp">
+      <Filter>소스 파일\Graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Graphics\AnimationClip.h">
@@ -112,6 +115,9 @@
     </ClInclude>
     <ClInclude Include="Core\Logger\Logger.h">
       <Filter>헤더 파일\Core\Logger</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Animator.h">
+      <Filter>헤더 파일\Graphics</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

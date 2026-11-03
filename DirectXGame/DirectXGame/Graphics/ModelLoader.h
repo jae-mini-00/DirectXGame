@@ -4,7 +4,7 @@
 #include "Graphics/Material.h"
 #include "Graphics/ModelLoadResult.h"
 #include "Graphics/SkeletonData.h"
-#include "Graphics/AnimationClip.h"
+#include "Graphics/Animator.h"
 
 #include <filesystem>
 #include <vector>
