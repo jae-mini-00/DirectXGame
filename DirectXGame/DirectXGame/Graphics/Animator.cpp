@@ -1,5 +1,6 @@
 #include "Graphics/Animator.h"
 #include "Core/Logger/Logger.h"
+#include "Graphics/NodeData.h"
 
 #include <cmath>
 #include <DirectXMath.h>
@@ -107,4 +108,21 @@ DirectX::XMMATRIX Animator::CalculateLocalTransform(
 	DirectX::XMMATRIX T = DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&position));
 
 	return S * R * T;
+}
+
+void Animator::CalculateGlobalTransforms(const NodeHierarchyData& hierarchy)
+{
+	globalTransforms.resize(hierarchy.nodes.size());
+	for (size_t i = 0; i < hierarchy.nodes.size(); ++i)
+	{
+		const NodeData& node = hierarchy.nodes[i];
+
+
+		DirectX::XMMATRIX transform = node.parentIndex == -1 ? 
+			DirectX::XMLoadFloat4x4(&node.localTransform) : 
+			DirectX::XMMatrixMultiply(DirectX::XMLoadFloat4x4(&node.localTransform), DirectX::XMLoadFloat4x4(&globalTransforms[node.parentIndex]));
+		
+
+		DirectX::XMStoreFloat4x4(&globalTransforms[i], transform);
+	}
 }

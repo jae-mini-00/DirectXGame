@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <algorithm>
 
+struct NodeHierarchyData;
 
 class Animator
 {
@@ -16,11 +17,12 @@ class Animator
 		void Update(double deltaTime);
 		double GetAnimationTime() const;
 
-	private :
+private :
 		const AnimationClip* currentClip;
 		double currentTime;
 		bool isPlaying;
 		bool isLooping;
+		std::vector<DirectX::XMFLOAT4X4> globalTransforms;
 
 		template<typename T>
 		size_t FindKeyframeIndex(const std::vector<T>& keys, double time) const
@@ -50,4 +52,5 @@ class Animator
 		DirectX::XMFLOAT4 InterpolateRotation(const std::vector<RotationKeyframe>& rotations, double time) const;
 		DirectX::XMFLOAT3 InterpolateScale(const std::vector<ScaleKeyframe>& scales, double time) const;
 		DirectX::XMMATRIX CalculateLocalTransform(const AnimationChannel& channel, double time) const;
+		void CalculateGlobalTransforms(const NodeHierarchyData& hierarchy);
 };

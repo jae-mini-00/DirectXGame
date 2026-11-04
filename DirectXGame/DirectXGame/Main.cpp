@@ -5,6 +5,7 @@
 #include "Scene/Scene.h"
 #include "Core/Logger/Logger.h"
 #include "Core/Paths.h"
+#include "Graphics/Animator.h"
 
 #include <Windows.h>
 #include <DirectXMath.h>
@@ -49,12 +50,13 @@ HRESULT AddModelToScene(const Renderer& renderer, Scene& scene, const char* file
     DirectX::XMFLOAT3 position, DirectX::XMFLOAT3 scale, DirectX::XMFLOAT3 rotation)
 {
     ModelData modelData;
+    std::unique_ptr<GameObject> model = std::make_unique<GameObject>();
     LoadResult lr = ModelLoader::Load(filePath, modelData);
+
     if (!lr.success) {
         Logger::Error("AddModelToScene", lr.message.c_str());
         return E_FAIL;
     }
-    std::unique_ptr<GameObject> model = std::make_unique<GameObject>();
     model->transform.scale = scale;
     model->transform.position = position;
     model->transform.rotation = rotation;

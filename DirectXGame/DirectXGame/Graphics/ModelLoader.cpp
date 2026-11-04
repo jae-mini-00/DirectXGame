@@ -164,6 +164,11 @@ DirectX::XMFLOAT4X4 ModelLoader::ConvertMatrix(const aiMatrix4x4& matrix)
     result._43 = matrix.d3;
     result._44 = matrix.d4;
 
+    DirectX::XMMATRIX matrixDX = DirectX::XMLoadFloat4x4(&result);
+    matrixDX = DirectX::XMMatrixTranspose(matrixDX);
+
+    DirectX::XMStoreFloat4x4(&result, matrixDX);
+
     return result;
 }
 
