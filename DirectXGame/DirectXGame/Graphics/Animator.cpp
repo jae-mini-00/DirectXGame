@@ -19,33 +19,38 @@ void Animator::Play(const AnimationClip* clip, bool loop)
 	isLooping = loop;
 }
 
-void Animator::Update(double deltaTime)
+void Animator::Update(double deltaTime, const NodeHierarchyData& hierarchy)
 {
-	if (currentClip == nullptr || !isPlaying || deltaTime <= 0.0)
+	if (currentClip == nullptr)
 		return;
 
-	double duration = currentClip->duration;
-
-	if (duration <= 0.0)
+	if (isPlaying && deltaTime > 0.0)
 	{
-		currentTime = 0.0;
-		isPlaying = false;
-		return;
-	}
+		double duration = currentClip->duration;
 
-	double ticksPerSecond = currentClip->ticksPerSecond > 0.0 ? currentClip->ticksPerSecond : 25.0;
-
-	currentTime += deltaTime * ticksPerSecond;
-	if (currentTime >= duration)
-	{
-		if (isLooping)
-			currentTime = std::fmod(currentTime, duration);
-		else
+		if (duration <= 0.0)
 		{
-			currentTime = duration;
+			currentTime = 0.0;
 			isPlaying = false;
 		}
+		else
+		{
+			double ticksPerSecond = currentClip->ticksPerSecond > 0.0 ? currentClip->ticksPerSecond : 25.0;
+
+			currentTime += deltaTime * ticksPerSecond;
+			if (currentTime >= duration)
+			{
+				if (isLooping)
+					currentTime = std::fmod(currentTime, duration);
+				else
+				{
+					currentTime = duration;
+					isPlaying = false;
+				}
+			}
+		}
 	}
+	CalculateGlobalTransforms(hierarchy);
 }
 
 DirectX::XMFLOAT3 Animator::InterpolatePosition(const std::vector<PositionKeyframe>& positions, double time) const
@@ -113,16 +118,26 @@ DirectX::XMMATRIX Animator::CalculateLocalTransform(
 void Animator::CalculateGlobalTransforms(const NodeHierarchyData& hierarchy)
 {
 	globalTransforms.resize(hierarchy.nodes.size());
-	for (size_t i = 0; i < hierarchy.nodes.size(); ++i)
+
+	if (currentClip != nullptr)
 	{
-		const NodeData& node = hierarchy.nodes[i];
+		for (size_t i = 0; i < hierarchy.nodes.size(); ++i)
+		{
+			const NodeData& node = hierarchy.nodes[i];
+			DirectX::XMMATRIX transform = DirectX::XMLoadFloat4x4(&node.localTransform);
+			for (const AnimationChannel& channel : currentClip->channels)
+			{
+				if (channel.name == node.name)
+				{
+					transform = CalculateLocalTransform(channel, currentTime);
+					break;
+				}
+			}
+			if (node.parentIndex != -1)
+				transform = DirectX::XMMatrixMultiply(transform,
+					DirectX::XMLoadFloat4x4(&globalTransforms[node.parentIndex]));
 
-
-		DirectX::XMMATRIX transform = node.parentIndex == -1 ? 
-			DirectX::XMLoadFloat4x4(&node.localTransform) : 
-			DirectX::XMMatrixMultiply(DirectX::XMLoadFloat4x4(&node.localTransform), DirectX::XMLoadFloat4x4(&globalTransforms[node.parentIndex]));
-		
-
-		DirectX::XMStoreFloat4x4(&globalTransforms[i], transform);
+			DirectX::XMStoreFloat4x4(&globalTransforms[i], transform);
+		}
 	}
 }

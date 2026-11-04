@@ -14,7 +14,7 @@ class Animator
 		Animator();
 
 		void Play(const AnimationClip* clip, bool loop = true);
-		void Update(double deltaTime);
+		void Update(double deltaTime, const NodeHierarchyData& hierarchy);
 		double GetAnimationTime() const;
 
 private :

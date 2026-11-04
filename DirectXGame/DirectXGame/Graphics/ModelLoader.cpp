@@ -1,5 +1,6 @@
 #include "Graphics/ModelLoader.h"
 #include "Core/Logger/Logger.h"
+#include "Graphics/Animator.h"
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
