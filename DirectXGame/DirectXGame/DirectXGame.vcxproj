@@ -162,6 +162,7 @@
     <ClInclude Include="Graphics\Model.h" />
     <ClInclude Include="Graphics\ModelLoader.h" />
     <ClInclude Include="Graphics\ModelLoadResult.h" />
+    <ClInclude Include="Graphics\NodeData.h" />
     <ClInclude Include="Graphics\SkeletonData.h" />
     <ClInclude Include="Scene\GameObject.h" />
     <ClInclude Include="Scene\Scene.h" />

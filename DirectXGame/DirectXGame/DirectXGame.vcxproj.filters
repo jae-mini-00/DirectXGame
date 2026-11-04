@@ -119,6 +119,9 @@
     <ClInclude Include="Graphics\Animator.h">
       <Filter>헤더 파일\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="Graphics\NodeData.h">
+      <Filter>헤더 파일\Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\PixelShader.hlsl">

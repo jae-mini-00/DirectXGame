@@ -149,9 +149,8 @@ void Logger::LogBone(const BoneData& bone, size_t index)
     const char* where = "Skeleton";
 
     Info(where, ("Bone[" + std::to_string(index) + "]").c_str());
-    Info(where, ("  Name         : " + bone.name).c_str());
-    Info(where, ("  Parent Index : " +
-        std::to_string(bone.parentIndex)).c_str());
+    Info(where, ("  Node Index : " +
+        std::to_string(bone.nodeIndex)).c_str());
 
     Info(where, "");
 }

@@ -28,6 +28,8 @@ LoadResult ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel
     outModel.skeleton.bones.clear();
     outModel.skeleton.nameToIndex.clear();
     outModel.animationClips.clear();
+    outModel.nodeHierarchy.nodes.clear();
+    outModel.nodeHierarchy.nameToIndex.clear();
 
     LoadMaterials(scene, outModel, parent_path);
     if (LoadMeshes(scene, outModel) <= 0)
@@ -39,8 +41,10 @@ LoadResult ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel
     else
     {
         if (scene->mRootNode != nullptr)
-            ResolveBoneParents(scene->mRootNode,
-                outModel.skeleton, -1);
+        {
+            LoadNodes(scene->mRootNode, outModel.nodeHierarchy, -1);
+            ResolveBoneNodes(outModel.skeleton, outModel.nodeHierarchy);
+        }
         LoadAnimations(scene, outModel);
     }
 
@@ -113,7 +117,6 @@ void ModelLoader::LoadMaterials(const aiScene* scene, ModelData& outModel
         else
         {
             std::string msg = parentPath.string() + " Diffuse Texture not found";
-
             Logger::Info("ModelLoader", msg.c_str());
         }
 
@@ -164,19 +167,20 @@ DirectX::XMFLOAT4X4 ModelLoader::ConvertMatrix(const aiMatrix4x4& matrix)
     return result;
 }
 
-void ModelLoader::ResolveBoneParents(const aiNode* node, SkeletonData& skeleton, int parentBoneIndex)
+void ModelLoader::ResolveBoneNodes(SkeletonData& skeleton, const NodeHierarchyData& hierarchy)
 {
-    const char* name = node->mName.C_Str();
-
-    if (skeleton.nameToIndex.find(name) != skeleton.nameToIndex.end())
+    for (const auto& [name, boneIndex] : skeleton.nameToIndex)
     {
-        int currentBoneIndex = skeleton.nameToIndex[name];
-        skeleton.bones[currentBoneIndex].parentIndex = parentBoneIndex;
-        parentBoneIndex = currentBoneIndex;
+        auto it = hierarchy.nameToIndex.find(name);
+        if (it != hierarchy.nameToIndex.end())
+            skeleton.bones[boneIndex].nodeIndex = it->second;
+        else
+        {
+            std::string msg = name + "node not found";
+            Logger::Error("ModelLoader", msg.c_str());
+            skeleton.bones[boneIndex].nodeIndex = -1;
+        }
     }
-    for (unsigned int i = 0; i < node->mNumChildren; ++i)
-        ResolveBoneParents(node->mChildren[i],
-            skeleton, parentBoneIndex);
 }
 
 void ModelLoader::LoadVertices(const aiMesh* mesh, MeshData& meshData)
@@ -216,9 +220,7 @@ void ModelLoader::LoadBones(const aiMesh* mesh, MeshData& meshData, SkeletonData
             BoneData bonedata = {};
             boneIndex = static_cast<int>(skeleton.bones.size());
 
-            bonedata.name = name;
             bonedata.offsetMatrix = ConvertMatrix(bone->mOffsetMatrix);
-            bonedata.parentIndex = -1;
 
             skeleton.nameToIndex[name] = boneIndex;
             skeleton.bones.push_back(bonedata);
@@ -320,4 +322,31 @@ void ModelLoader::LoadAnimations(const aiScene* scene, ModelData& outModel)
         }
         outModel.animationClips.push_back(clip);
     }
+}
+
+void ModelLoader::LoadNodes(const aiNode* node, NodeHierarchyData& hierarchy, int parentIndex)
+{
+    if (node == nullptr)
+        return;
+
+    NodeData nodeData = {};
+
+    nodeData.name = node->mName.C_Str();
+    nodeData.parentIndex = parentIndex;
+    nodeData.localTransform = ConvertMatrix(node->mTransformation);
+
+    if (hierarchy.nameToIndex.find(nodeData.name) != hierarchy.nameToIndex.end())
+    {
+        Logger::Error("ModelLoader", "Duplicate node name");
+        return;
+    }
+
+    int nodeIndex = static_cast<int>(hierarchy.nodes.size());
+
+    hierarchy.nameToIndex[nodeData.name] = nodeIndex;
+    hierarchy.nodes.push_back(nodeData);
+
+    for (unsigned int i = 0; i < node->mNumChildren; ++i)
+        LoadNodes(node->mChildren[i],
+            hierarchy, nodeIndex);
 }

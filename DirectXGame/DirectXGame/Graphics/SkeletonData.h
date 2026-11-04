@@ -8,8 +8,7 @@
 
 struct BoneData
 {
-    std::string name;
-    int parentIndex = -1;
+    int nodeIndex = -1;
     DirectX::XMFLOAT4X4 offsetMatrix;
 };
 
