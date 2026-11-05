@@ -10,6 +10,9 @@ class Model
     public:
         const std::vector<Mesh>& GetMeshes() const;
         const std::vector<Material>& GetMaterials() const;
+        const SkeletonData& GetSkeleton() const;
+        const NodeHierarchyData& GetNodeHierarchy() const;
+        const std::vector<AnimationClip>& GetAnimationClip() const;
 
         Model() = default;
         ~Model() = default;
@@ -21,4 +24,7 @@ class Model
     private:
         std::vector<Mesh> meshes;
         std::vector<Material> materials;
+        std::vector<AnimationClip> animationClip;
+        SkeletonData skeleton;
+        NodeHierarchyData nodeHierarchy;
 };

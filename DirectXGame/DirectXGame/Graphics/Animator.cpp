@@ -1,12 +1,14 @@
 #include "Graphics/Animator.h"
 #include "Core/Logger/Logger.h"
 #include "Graphics/NodeData.h"
+#include "Graphics/SkeletonData.h"
 
 #include <cmath>
 #include <DirectXMath.h>
 
 Animator::Animator() : currentClip(nullptr), currentTime(0.0), isPlaying(false), isLooping(true) {}
 double Animator::GetAnimationTime() const { return currentTime; }
+const std::vector<DirectX::XMFLOAT4X4>& Animator::GetSkinningMatrices() const { return skinningMatrices; }
 
 void Animator::Play(const AnimationClip* clip, bool loop)
 {
@@ -19,12 +21,9 @@ void Animator::Play(const AnimationClip* clip, bool loop)
 	isLooping = loop;
 }
 
-void Animator::Update(double deltaTime, const NodeHierarchyData& hierarchy)
+void Animator::Update(double deltaTime, const NodeHierarchyData& hierarchy, const SkeletonData& skeleton)
 {
-	if (currentClip == nullptr)
-		return;
-
-	if (isPlaying && deltaTime > 0.0)
+	if (currentClip != nullptr && isPlaying && deltaTime > 0.0)
 	{
 		double duration = currentClip->duration;
 
@@ -51,6 +50,7 @@ void Animator::Update(double deltaTime, const NodeHierarchyData& hierarchy)
 		}
 	}
 	CalculateGlobalTransforms(hierarchy);
+	CalculateSkinningMatrices(skeleton);
 }
 
 DirectX::XMFLOAT3 Animator::InterpolatePosition(const std::vector<PositionKeyframe>& positions, double time) const
@@ -119,12 +119,13 @@ void Animator::CalculateGlobalTransforms(const NodeHierarchyData& hierarchy)
 {
 	globalTransforms.resize(hierarchy.nodes.size());
 
-	if (currentClip != nullptr)
+	for (size_t i = 0; i < hierarchy.nodes.size(); ++i)
 	{
-		for (size_t i = 0; i < hierarchy.nodes.size(); ++i)
+		const NodeData& node = hierarchy.nodes[i];
+		DirectX::XMMATRIX transform = DirectX::XMLoadFloat4x4(&node.localTransform);
+
+		if (currentClip != nullptr)
 		{
-			const NodeData& node = hierarchy.nodes[i];
-			DirectX::XMMATRIX transform = DirectX::XMLoadFloat4x4(&node.localTransform);
 			for (const AnimationChannel& channel : currentClip->channels)
 			{
 				if (channel.name == node.name)
@@ -133,11 +134,32 @@ void Animator::CalculateGlobalTransforms(const NodeHierarchyData& hierarchy)
 					break;
 				}
 			}
-			if (node.parentIndex != -1)
-				transform = DirectX::XMMatrixMultiply(transform,
-					DirectX::XMLoadFloat4x4(&globalTransforms[node.parentIndex]));
-
-			DirectX::XMStoreFloat4x4(&globalTransforms[i], transform);
 		}
+		if (node.parentIndex != -1)
+			transform = DirectX::XMMatrixMultiply(transform,
+				DirectX::XMLoadFloat4x4(&globalTransforms[node.parentIndex]));
+
+		DirectX::XMStoreFloat4x4(&globalTransforms[i], transform);
+	}
+}
+
+void Animator::CalculateSkinningMatrices(const SkeletonData& skeleton)
+{
+	skinningMatrices.resize(skeleton.bones.size());
+
+	for (unsigned int i = 0; i < skeleton.bones.size(); ++i)
+	{
+		const BoneData &bone = skeleton.bones[i];
+
+		if (bone.nodeIndex < 0 || bone.nodeIndex >= globalTransforms.size())
+			continue;
+		
+		DirectX::XMMATRIX  offsetMatrix = DirectX::XMLoadFloat4x4(&bone.offsetMatrix);
+		DirectX::XMMATRIX transform = DirectX::XMLoadFloat4x4(&globalTransforms[bone.nodeIndex]);
+		DirectX::XMMATRIX result = DirectX::XMMatrixMultiply(offsetMatrix, transform);
+		DirectX::XMFLOAT4X4 skining = {};
+
+		DirectX::XMStoreFloat4x4(&skining, result);
+		skinningMatrices[i] = skining;
 	}
 }

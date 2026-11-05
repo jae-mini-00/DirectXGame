@@ -5,6 +5,7 @@
 #include "Core/Logger/Logger.h"
 #include "Graphics/Material.h"
 #include "Core/Paths.h"
+#include "Graphics/Animator.h"
 
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "d3d11.lib")
@@ -15,11 +16,14 @@ ID3D11DeviceContext* Renderer::GetContext() const { return context; }
 Renderer::Renderer() : device(nullptr), context(nullptr), swapChain(nullptr), 
 renderTargetView(nullptr), vertexShader(nullptr), pixelShader(nullptr),
 inputLayout(nullptr), matrixBuffer(nullptr), depthBuffer(nullptr),
-depthStencilView(nullptr), materialBuffer(nullptr), lightBuffer(nullptr) {}
+depthStencilView(nullptr), materialBuffer(nullptr), lightBuffer(nullptr),
+boneMatrixBuffer(nullptr) {}
 
 
 Renderer::~Renderer()
 {
+    if (boneMatrixBuffer)
+        boneMatrixBuffer->Release();
     if (lightBuffer)
         lightBuffer->Release();
     if (materialBuffer)
@@ -73,6 +77,7 @@ HRESULT Renderer::Initialize(HWND hwnd)
     RETURN_IF_FAILED(CreateMatrixBuffer());
     RETURN_IF_FAILED(CreateMaterialBuffer());
     RETURN_IF_FAILED(CreateLightBuffer());
+    RETURN_IF_FAILED(CreateBoneMatrixBuffer());
 
     RETURN_IF_FAILED(CreateVertexShader());
     RETURN_IF_FAILED(CreatePixelShader());
@@ -89,6 +94,7 @@ void Renderer::BindVertexStage()
     context->IASetInputLayout(inputLayout);
     context->VSSetShader(vertexShader, nullptr, 0);
     context->VSSetConstantBuffers(0, 1, &matrixBuffer);
+    context->VSSetConstantBuffers(1, 1, &boneMatrixBuffer);
 }
 
 void Renderer::BindPixelStage()
@@ -206,7 +212,7 @@ HRESULT Renderer::CreateLightBuffer()
 
 HRESULT Renderer::CreateInputLayout(ID3DBlob* shaderBlob)
 {
-    D3D11_INPUT_ELEMENT_DESC layout[3] = {};
+    D3D11_INPUT_ELEMENT_DESC layout[5] = {};
 
     layout[0].SemanticName = "POSITION";
     layout[0].SemanticIndex = 0;
@@ -232,9 +238,41 @@ HRESULT Renderer::CreateInputLayout(ID3DBlob* shaderBlob)
     layout[2].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
     layout[2].InstanceDataStepRate = 0;
 
-    RETURN_IF_FAILED(device->CreateInputLayout(layout, 3, shaderBlob->GetBufferPointer(), 
+    layout[3].SemanticName = "BLENDINDICES";
+    layout[3].SemanticIndex = 0;
+    layout[3].Format = DXGI_FORMAT_R32G32B32A32_SINT;
+    layout[3].InputSlot = 0;
+    layout[3].AlignedByteOffset = offsetof(Vertex, boneIndices);
+    layout[3].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+    layout[3].InstanceDataStepRate = 0;
+
+    layout[4].SemanticName = "BLENDWEIGHT";
+    layout[4].SemanticIndex = 0;
+    layout[4].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    layout[4].InputSlot = 0;
+    layout[4].AlignedByteOffset = offsetof(Vertex, boneWeights);
+    layout[4].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+    layout[4].InstanceDataStepRate = 0;
+
+    RETURN_IF_FAILED(device->CreateInputLayout(layout, 5, shaderBlob->GetBufferPointer(), 
         shaderBlob->GetBufferSize(), &inputLayout));
 
+
+    return S_OK;
+}
+
+HRESULT Renderer::CreateBoneMatrixBuffer()
+{
+    D3D11_BUFFER_DESC bufferDesc = {};
+
+    bufferDesc.ByteWidth = sizeof(BoneMatrixBuffer);
+    bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+    bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    bufferDesc.CPUAccessFlags = 0;
+    bufferDesc.MiscFlags = 0;
+    bufferDesc.StructureByteStride = 0;
+
+    RETURN_IF_FAILED(device->CreateBuffer(&bufferDesc, nullptr, &boneMatrixBuffer));
 
     return S_OK;
 }
@@ -392,6 +430,25 @@ void Renderer::UpdateLightBuffer()
         &lightData, 0, 0);
 }
 
+void Renderer::UpdateBoneMatrixBuffer(const std::vector<DirectX::XMFLOAT4X4>& matrices)
+{
+    BoneMatrixBuffer data = {};
+
+    for (size_t i = 0; i < MAX_BONES; ++i)
+        DirectX::XMStoreFloat4x4(&data.bones[i],DirectX::XMMatrixIdentity());
+
+    for (size_t i = 0; i < matrices.size() && i < MAX_BONES; ++i)
+    {
+        DirectX::XMMATRIX matrix =
+            DirectX::XMLoadFloat4x4(&matrices[i]);
+
+        matrix = DirectX::XMMatrixTranspose(matrix);
+
+        DirectX::XMStoreFloat4x4(&data.bones[i], matrix);
+    }
+    context->UpdateSubresource(boneMatrixBuffer, 0, nullptr,
+        &data, 0, 0);
+}
 
 void Renderer::ClearFrame() {
     float rgbaColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -413,7 +470,9 @@ void Renderer::Draw(const Scene& scene, const Camera& camera)
     for (std::size_t i = 0; i < scene.size(); ++i)
     {
         const GameObject* object = scene[i];
+
         UpdateTransformBuffer(object->transform, camera);
+        UpdateBoneMatrixBuffer(object->animator.GetSkinningMatrices());
 
         const std::vector<Mesh>& meshes = object->model.GetMeshes();
         const std::vector<Material>& materials = object->model.GetMaterials();

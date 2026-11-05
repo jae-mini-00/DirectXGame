@@ -3,6 +3,10 @@
 
 const std::vector<Mesh>& Model::GetMeshes() const { return meshes; }
 const std::vector<Material>& Model::GetMaterials() const { return materials; }
+const SkeletonData& Model::GetSkeleton() const { return skeleton; }
+const NodeHierarchyData& Model::GetNodeHierarchy() const { return nodeHierarchy; }
+const std::vector<AnimationClip>& Model::GetAnimationClip() const { return animationClip; }
+
 
 HRESULT Model::Initialize(ID3D11Device* device,
     ID3D11DeviceContext* context, const ModelData& data)
@@ -34,6 +38,10 @@ HRESULT Model::Initialize(ID3D11Device* device,
 
         materials.push_back(std::move(material));
     }
+
+    skeleton = data.skeleton;
+    nodeHierarchy = data.nodeHierarchy;
+    animationClip = data.animationClips;
 
     return S_OK;
 }

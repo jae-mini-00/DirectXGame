@@ -11,6 +11,7 @@ class GameObject;
 class Material;
 struct Transform;
 
+constexpr unsigned int MAX_BONES = 128;
 
 struct FeatureLevelInfo
 {
@@ -42,6 +43,11 @@ struct LightBuffer
     int padding[3] = { 0 , 0, 0 };
 };
 
+struct BoneMatrixBuffer
+{
+    DirectX::XMFLOAT4X4 bones[MAX_BONES];
+};
+
 class Renderer
 {
     public:
@@ -67,7 +73,7 @@ class Renderer
         ID3D11DepthStencilView* depthStencilView;
         ID3D11Buffer* materialBuffer;
         ID3D11Buffer* lightBuffer;
-
+        ID3D11Buffer* boneMatrixBuffer;
 
         void BindVertexStage();
         void BindPixelStage();
@@ -83,10 +89,12 @@ class Renderer
         HRESULT CreateDepthBuffer(HWND hwnd);
         HRESULT CreateMaterialBuffer();
         HRESULT CreateLightBuffer();
+        HRESULT CreateBoneMatrixBuffer();
 
         void UpdateLightBuffer();
         void UpdateMaterialBuffer(const Material& material);
         void UpdateMatrixBuffer(const DirectX::XMMATRIX& world, const Camera& camera);
         void UpdateTransformBuffer(const Transform& transform, const Camera& camera);
+        void UpdateBoneMatrixBuffer(const std::vector<DirectX::XMFLOAT4X4>& matrices);
         void ClearFrame();
 };

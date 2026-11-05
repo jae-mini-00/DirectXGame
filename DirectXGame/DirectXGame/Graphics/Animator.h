@@ -7,6 +7,7 @@
 #include <algorithm>
 
 struct NodeHierarchyData;
+struct SkeletonData;
 
 class Animator
 {
@@ -14,8 +15,9 @@ class Animator
 		Animator();
 
 		void Play(const AnimationClip* clip, bool loop = true);
-		void Update(double deltaTime, const NodeHierarchyData& hierarchy);
+		void Update(double deltaTime, const NodeHierarchyData& hierarchy, const SkeletonData& skeleton);
 		double GetAnimationTime() const;
+		const std::vector<DirectX::XMFLOAT4X4>& GetSkinningMatrices() const;
 
 private :
 		const AnimationClip* currentClip;
@@ -23,6 +25,7 @@ private :
 		bool isPlaying;
 		bool isLooping;
 		std::vector<DirectX::XMFLOAT4X4> globalTransforms;
+		std::vector<DirectX::XMFLOAT4X4> skinningMatrices;
 
 		template<typename T>
 		size_t FindKeyframeIndex(const std::vector<T>& keys, double time) const
@@ -53,4 +56,5 @@ private :
 		DirectX::XMFLOAT3 InterpolateScale(const std::vector<ScaleKeyframe>& scales, double time) const;
 		DirectX::XMMATRIX CalculateLocalTransform(const AnimationChannel& channel, double time) const;
 		void CalculateGlobalTransforms(const NodeHierarchyData& hierarchy);
+		void CalculateSkinningMatrices(const SkeletonData& skeleton);
 };

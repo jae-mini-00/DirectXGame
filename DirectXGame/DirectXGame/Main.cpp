@@ -71,6 +71,17 @@ HRESULT AddModelToScene(const Renderer& renderer, Scene& scene, const char* file
     return S_OK;
 }
 
+void SceneUpdate(Scene& scene, double deltaTime)
+{
+    for (std::size_t i = 0; i < scene.size(); ++i)
+    {
+        GameObject* object = scene[i];
+
+        object->animator.Update(deltaTime,
+            object->model.GetNodeHierarchy(), object->model.GetSkeleton());
+    }
+}
+
 int WINAPI WinMain
 (
     HINSTANCE hInstance,
@@ -114,7 +125,7 @@ int WINAPI WinMain
     DirectX::XMFLOAT3 rotation;
 
 
-    scale = { 0.15f, 0.15f, 0.15f };
+    scale = { 0.1f, 0.1f, 0.1f };
     position = { 0.0f, -1.0f, 0.0f };
     rotation = { -90.0f, 0.0f, 180.0f };
     hr = AddModelToScene(renderer, scene, Paths::ManModel, position, scale, rotation);
@@ -141,6 +152,7 @@ int WINAPI WinMain
         }
         else
         {
+            SceneUpdate(scene, 0.0);
             renderer.BeginFrame();
             renderer.Draw(scene, camera);
             renderer.EndFrame();
