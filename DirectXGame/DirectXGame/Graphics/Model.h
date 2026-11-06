@@ -19,6 +19,8 @@ class Model
         Model(const Model&) = delete;
         Model& operator=(const Model&) = delete;
 
+        int FindMeshNodeIndex(unsigned int meshIndex) const;
+
         HRESULT Initialize(ID3D11Device* device,
             ID3D11DeviceContext* context, const ModelData& data);
 

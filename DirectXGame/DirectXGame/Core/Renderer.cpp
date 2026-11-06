@@ -7,6 +7,9 @@
 #include "Core/Paths.h"
 #include "Graphics/Animator.h"
 
+#include <sstream>
+#include <iomanip>
+
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "d3d11.lib")
 
@@ -477,8 +480,23 @@ void Renderer::Draw(const Scene& scene, const Camera& camera)
         const std::vector<Mesh>& meshes = object->model.GetMeshes();
         const std::vector<Material>& materials = object->model.GetMaterials();
 
-        for (const Mesh& mesh : meshes)
+        for (unsigned int meshIndex = 0; meshIndex < meshes.size(); ++meshIndex)
         {
+            int nodeIndex = object->model.FindMeshNodeIndex(meshIndex);
+            if (nodeIndex == -1)
+            {
+                Logger::Error("Renderer", "Mesh owner node not found");
+                continue;
+            }
+
+            const DirectX::XMFLOAT4X4* nodeGlobalTransform = object->animator.GetNodeGlobalTransform(nodeIndex);
+            if (nodeGlobalTransform == nullptr)
+            {
+                Logger::Error("Renderer", "Node global transform not found");
+                continue;
+            }
+
+            const Mesh& mesh = meshes[meshIndex];
             const Material& material = materials[mesh.GetMaterialIndex()];
             ID3D11ShaderResourceView* textureView = material.GetTextureView();
             ID3D11SamplerState* samplerState = material.GetSamplerState();

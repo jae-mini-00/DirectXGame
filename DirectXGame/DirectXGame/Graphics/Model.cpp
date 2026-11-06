@@ -78,3 +78,17 @@ int Model::FindMeshIndex(unsigned int originalMeshIndex) const
 
     return -1;
 }
+
+int Model::FindMeshNodeIndex(unsigned int meshIndex) const
+{
+    for (unsigned int i = 0; i < nodeHierarchy.nodes.size(); ++i)
+    {
+        for (unsigned int j = 0; j < nodeHierarchy.nodes[i].meshIndexs.size(); ++j)
+        {
+            if (nodeHierarchy.nodes[i].meshIndexs[j] == meshIndex)
+                return i;
+        }
+    }
+
+    return -1;
+}

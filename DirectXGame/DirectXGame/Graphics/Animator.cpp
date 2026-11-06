@@ -10,6 +10,15 @@ Animator::Animator() : currentClip(nullptr), currentTime(0.0), isPlaying(false),
 double Animator::GetAnimationTime() const { return currentTime; }
 const std::vector<DirectX::XMFLOAT4X4>& Animator::GetSkinningMatrices() const { return skinningMatrices; }
 
+const DirectX::XMFLOAT4X4* Animator::GetNodeGlobalTransform(int nodeIndex) const
+{ 
+	if (nodeIndex < 0 || static_cast<size_t>(nodeIndex) >= globalTransforms.size())
+		return nullptr;
+
+	return &globalTransforms[nodeIndex];
+}
+
+
 void Animator::Play(const AnimationClip* clip, bool loop)
 {
 	if (clip == nullptr)

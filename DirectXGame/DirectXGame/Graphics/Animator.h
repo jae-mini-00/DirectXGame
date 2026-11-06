@@ -14,9 +14,11 @@ class Animator
 	public :
 		Animator();
 
+		double GetAnimationTime() const;
+		const DirectX::XMFLOAT4X4* GetNodeGlobalTransform(int nodeIndex) const;
+
 		void Play(const AnimationClip* clip, bool loop = true);
 		void Update(double deltaTime, const NodeHierarchyData& hierarchy, const SkeletonData& skeleton);
-		double GetAnimationTime() const;
 		const std::vector<DirectX::XMFLOAT4X4>& GetSkinningMatrices() const;
 
 private :
