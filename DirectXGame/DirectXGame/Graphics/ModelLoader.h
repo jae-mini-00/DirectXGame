@@ -21,6 +21,7 @@ struct ModelData
 {
 	std::vector<MeshData> meshes;
 	std::vector<MaterialData> materials;
+	std::vector<unsigned int> meshIndexs;
 	std::vector<AnimationClip> animationClips;
 
 	SkeletonData skeleton;

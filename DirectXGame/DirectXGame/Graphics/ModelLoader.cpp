@@ -76,6 +76,7 @@ int ModelLoader::LoadMeshes(const aiScene* scene, ModelData& outModel)
             resolvedMaterialIndex = scene->mMeshes[i]->mMaterialIndex;
         
         outModel.meshes.push_back(LoadMesh(scene->mMeshes[i], resolvedMaterialIndex, outModel.skeleton));
+        outModel.meshIndexs.push_back(i);
         success++;
     }
     return success;
@@ -340,6 +341,9 @@ void ModelLoader::LoadNodes(const aiNode* node, NodeHierarchyData& hierarchy, in
     nodeData.name = node->mName.C_Str();
     nodeData.parentIndex = parentIndex;
     nodeData.localTransform = ConvertMatrix(node->mTransformation);
+
+    for (unsigned int i = 0; i < node->mNumMeshes; ++i)
+        nodeData.meshIndexs.push_back(node->mMeshes[i]);
 
     if (hierarchy.nameToIndex.find(nodeData.name) != hierarchy.nameToIndex.end())
     {

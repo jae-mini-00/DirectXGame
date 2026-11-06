@@ -9,6 +9,7 @@ struct NodeData
 {
 	std::string name;
 	int parentIndex = -1;
+	std::vector<unsigned int> meshIndexs;
 	DirectX::XMFLOAT4X4 localTransform;
 };
 

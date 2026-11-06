@@ -1,4 +1,5 @@
 #include "Graphics/Model.h"
+#include "Core/Logger/Logger.h"
 #include <utility>
 
 const std::vector<Mesh>& Model::GetMeshes() const { return meshes; }
@@ -39,9 +40,41 @@ HRESULT Model::Initialize(ID3D11Device* device,
         materials.push_back(std::move(material));
     }
 
+    meshIndexs = data.meshIndexs;
     skeleton = data.skeleton;
     nodeHierarchy = data.nodeHierarchy;
     animationClip = data.animationClips;
+    ResolveMeshIndices();
 
     return S_OK;
+}
+
+void Model::ResolveMeshIndices()
+{
+    for (unsigned int i = 0; i < nodeHierarchy.nodes.size(); ++i)
+    {
+        for (unsigned int j = 0; j < nodeHierarchy.nodes[i].meshIndexs.size();)
+        {
+            int meshindex = FindMeshIndex(nodeHierarchy.nodes[i].meshIndexs[j]);
+
+            if (meshindex == -1)
+                nodeHierarchy.nodes[i].meshIndexs.erase(nodeHierarchy.nodes[i].meshIndexs.begin() + j);
+            else
+            {
+                nodeHierarchy.nodes[i].meshIndexs[j] = meshindex;
+                ++j;
+            }
+        }
+    }
+}
+
+int Model::FindMeshIndex(unsigned int originalMeshIndex) const
+{
+    for (unsigned int i = 0; i < meshIndexs.size(); ++i)
+    {
+        if (meshIndexs[i] == originalMeshIndex)
+            return i;
+    }
+
+    return -1;
 }

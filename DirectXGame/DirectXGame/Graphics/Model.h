@@ -18,13 +18,19 @@ class Model
         ~Model() = default;
         Model(const Model&) = delete;
         Model& operator=(const Model&) = delete;
+
         HRESULT Initialize(ID3D11Device* device,
             ID3D11DeviceContext* context, const ModelData& data);
 
     private:
         std::vector<Mesh> meshes;
+        std::vector<unsigned int> meshIndexs;
         std::vector<Material> materials;
         std::vector<AnimationClip> animationClip;
         SkeletonData skeleton;
         NodeHierarchyData nodeHierarchy;
+
+        void ResolveMeshIndices();
+        int FindMeshIndex(unsigned int originalMeshIndex) const;
+
 };
