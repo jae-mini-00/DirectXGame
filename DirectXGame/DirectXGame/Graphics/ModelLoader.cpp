@@ -2,6 +2,8 @@
 #include "Core/Logger/Logger.h"
 #include "Graphics/Animator.h"
 
+#include <cmath>
+#include <DirectXMath.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
@@ -13,7 +15,7 @@ LoadResult ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel
     std::filesystem::path parent_path = filePath.parent_path();
 
     const aiScene* scene = importer.ReadFile(filePath.string(), 
-        aiProcess_Triangulate | aiProcess_GenSmoothNormals);
+        aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_PopulateArmatureData);
 
     if (scene == nullptr)
     {
@@ -31,6 +33,7 @@ LoadResult ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel
     outModel.animationClips.clear();
     outModel.nodeHierarchy.nodes.clear();
     outModel.nodeHierarchy.nameToIndex.clear();
+    outModel.meshIndexs.clear();
 
     LoadMaterials(scene, outModel, parent_path);
     if (LoadMeshes(scene, outModel) <= 0)
@@ -45,6 +48,7 @@ LoadResult ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel
         {
             LoadNodes(scene->mRootNode, outModel.nodeHierarchy, -1);
             ResolveBoneNodes(outModel.skeleton, outModel.nodeHierarchy);
+            ResolveBindPose(scene, outModel.skeleton, outModel.nodeHierarchy);
         }
         LoadAnimations(scene, outModel);
     }
@@ -203,6 +207,174 @@ void ModelLoader::ResolveBoneNodes(SkeletonData& skeleton, const NodeHierarchyDa
             skeleton.bones[boneIndex].nodeIndex = -1;
         }
     }
+}
+
+aiNode* ModelLoader::FindMeshOwnerNode(aiNode* node, unsigned int meshIndex)
+{
+    if (node == nullptr)
+        return nullptr;
+
+    for (unsigned int i = 0; i < node->mNumMeshes; ++i)
+    {
+        if (node->mMeshes[i] == meshIndex)
+            return node;
+    }
+
+    for (unsigned int i = 0; i < node->mNumChildren; ++i)
+    {
+        aiNode* findNode = FindMeshOwnerNode(node->mChildren[i], meshIndex);
+
+        if (findNode)
+            return findNode;
+    }
+
+    return nullptr;
+}
+
+aiMatrix4x4 ModelLoader::CalculateNodeGlobalTransform(const aiNode* startNode)
+{
+    if (startNode == nullptr)
+        return aiMatrix4x4();
+
+    const aiNode* parentNode = startNode->mParent;
+    aiMatrix4x4 transform = startNode->mTransformation;
+
+    while (parentNode)
+    {
+        transform = parentNode->mTransformation * transform;
+        parentNode = parentNode->mParent;
+    }
+
+    return transform;
+}
+
+
+bool ModelLoader::BuildDefaultNodeGlobals(const NodeHierarchyData& hierarchy, std::vector<DirectX::XMFLOAT4X4>& globals)
+{
+    globals.resize(hierarchy.nodes.size());
+
+    for (size_t i = 0; i < hierarchy.nodes.size(); ++i)
+    {
+        const NodeData& node = hierarchy.nodes[i];
+        DirectX::XMMATRIX global =
+            DirectX::XMLoadFloat4x4(&node.localTransform);
+
+        if (node.parentIndex >= 0)
+        {
+            size_t parent = static_cast<size_t>(node.parentIndex);
+
+            if (parent >= i)
+            {
+                Logger::Error("ResolveBindPose", "Invalid node parent order");
+                return false;
+            }
+            global *= DirectX::XMLoadFloat4x4(&globals[parent]);
+        }
+        DirectX::XMStoreFloat4x4(&globals[i], global);
+    }
+
+    return true;
+}
+
+
+void ModelLoader::CollectBoneBindGlobals(const aiScene* scene, const SkeletonData& skeleton, std::vector<DirectX::XMFLOAT4X4>& globals)
+{
+    std::vector<bool> assigned(globals.size(), false);
+
+    for (unsigned int i = 0; i < scene->mNumMeshes; ++i)
+    {
+        const aiMesh* mesh = scene->mMeshes[i];
+        if (mesh == nullptr)
+            continue;
+
+        const aiNode* owner = FindMeshOwnerNode(scene->mRootNode, i);
+        if (owner == nullptr)
+            continue;
+
+        aiMatrix4x4 meshGlobal = CalculateNodeGlobalTransform(owner);
+
+        for (unsigned int j = 0; j < mesh->mNumBones; ++j)
+        {
+            const aiBone* bone = mesh->mBones[j];
+            if (bone == nullptr)
+                continue;
+
+            auto it = skeleton.nameToIndex.find(bone->mName.C_Str());
+            if (it == skeleton.nameToIndex.end())
+                continue;
+
+            int boneIndex = it->second;
+            if (boneIndex < 0 ||
+                static_cast<size_t>(boneIndex) >= skeleton.bones.size())
+                continue;
+
+            int nodeIndex = skeleton.bones[boneIndex].nodeIndex;
+            if (nodeIndex < 0 ||
+                static_cast<size_t>(nodeIndex) >= globals.size())
+                continue;
+
+            size_t index = static_cast<size_t>(nodeIndex);
+
+            if (assigned[index])
+            {
+                Logger::Warning("ResolveBindPose",
+                    "Bone shared by multiple meshes; first binding used");
+                continue;
+            }
+
+            aiMatrix4x4 inverseOffset = bone->mOffsetMatrix;
+
+            inverseOffset.Inverse();
+
+            aiMatrix4x4 boneBindGlobal = meshGlobal * inverseOffset;
+
+            globals[index] = ConvertMatrix(boneBindGlobal);
+            assigned[index] = true;
+        }
+    }
+}
+
+void ModelLoader::ApplyBindLocalTransforms(NodeHierarchyData& hierarchy, const std::vector<DirectX::XMFLOAT4X4>& globals)
+{
+    for (size_t i = 0; i < hierarchy.nodes.size(); ++i)
+    {
+        NodeData& node = hierarchy.nodes[i];
+        DirectX::XMMATRIX global = DirectX::XMLoadFloat4x4(&globals[i]);
+        DirectX::XMMATRIX local = global;
+
+        if (node.parentIndex >= 0)
+        {
+            size_t parent = static_cast<size_t>(node.parentIndex);
+            DirectX::XMMATRIX parentGlobal = DirectX::XMLoadFloat4x4(&globals[parent]);
+            DirectX::XMVECTOR determinant;
+            DirectX::XMMATRIX inverseParent = DirectX::XMMatrixInverse(&determinant, parentGlobal);
+
+            if (std::fabs(DirectX::XMVectorGetX(determinant)) < 1e-8f)
+            {
+                Logger::Warning("ResolveBindPose",
+                    "Parent bind transform is not invertible");
+                continue;
+            }
+            local = global * inverseParent;
+        }
+        DirectX::XMStoreFloat4x4(&node.bindLocalTransform, local);
+        node.hasBindPose = true;
+    }
+}
+
+void ModelLoader::ResolveBindPose(const aiScene* scene, const SkeletonData& skeleton, NodeHierarchyData& hierarchy)
+{
+    if (scene == nullptr || scene->mRootNode == nullptr)
+        return;
+
+    std::vector<DirectX::XMFLOAT4X4> bindGlobals;
+
+    if (!BuildDefaultNodeGlobals(hierarchy, bindGlobals))
+        return;
+
+    CollectBoneBindGlobals(scene, skeleton, bindGlobals);
+    ApplyBindLocalTransforms(hierarchy, bindGlobals);
+    Logger::Info("ResolveBindPose", "Bind local transforms resolved");
 }
 
 void ModelLoader::LoadVertices(const aiMesh* mesh, MeshData& meshData)

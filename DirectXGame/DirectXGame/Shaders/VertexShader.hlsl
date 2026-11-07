@@ -3,6 +3,7 @@ cbuffer MatrixBuffer : register(b0)
     matrix world;
     matrix view;
     matrix projection;
+    matrix meshNode;
 };
 
 cbuffer BoneMatrixBuffer : register(b1)
@@ -44,12 +45,7 @@ float4x4 CalculateBlendMatrix(int4 boneIndices, float4 boneWeights)
     }
 
     if (totalWeight <= 0.0f)
-    return float4x4(
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1
-    );
+        return meshNode;
 
     return blend / totalWeight;
 }
@@ -66,10 +62,10 @@ VSOutput main(VSInput input)
     // - World Normal Matrix 역전치 적용
     // - Bone Normal Matrix 처리 방식 검토
     // - 조명 및 Normal 렌더링 검증
-    // normal = mul(normal, blend);
+    normal = mul(normal, blend);
     normal = mul(normal, world);
 
-    // position = mul(position, blend);
+    position = mul(position, blend);
     position = mul(position, world);
     position = mul(position, view);
     position = mul(position, projection);

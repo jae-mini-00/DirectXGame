@@ -34,13 +34,22 @@ class ModelLoader
 		static LoadResult Load(std::filesystem::path filePath, ModelData& outModel);
 
 	private:
-		static void LoadMaterials(const aiScene* scene, ModelData& outModel, 
-			const std::filesystem::path& parentPath);
-		static int LoadMeshes(const aiScene* scene, ModelData& outModel);
-		static MeshData LoadMesh(const aiMesh* mesh, unsigned int materialIndex, SkeletonData& skeleton);
+		
 		static bool AddBoneInfluence(Vertex& vertex, int boneIndex, float weight);
+
+		static bool BuildDefaultNodeGlobals(const NodeHierarchyData& hierarchy, std::vector<DirectX::XMFLOAT4X4>& globals);
+		static void CollectBoneBindGlobals(const aiScene* scene, const SkeletonData& skeleton, std::vector<DirectX::XMFLOAT4X4>& globals);
+		static void ApplyBindLocalTransforms(NodeHierarchyData& hierarchy, const std::vector<DirectX::XMFLOAT4X4>& globals);
+		static aiMatrix4x4 CalculateNodeGlobalTransform(const aiNode* startNode);
+		static aiNode* FindMeshOwnerNode(aiNode* node, unsigned int meshIndex);
 		static DirectX::XMFLOAT4X4 ConvertMatrix(const aiMatrix4x4& matrix);
 		static void ResolveBoneNodes(SkeletonData& skeleton, const NodeHierarchyData& hierarchy);
+		static void ResolveBindPose(const aiScene* scene, const SkeletonData& skeleton, NodeHierarchyData& hierarchy);
+
+		static MeshData LoadMesh(const aiMesh* mesh, unsigned int materialIndex, SkeletonData& skeleton);
+		static void LoadMaterials(const aiScene* scene, ModelData& outModel,
+			const std::filesystem::path& parentPath);
+		static int LoadMeshes(const aiScene* scene, ModelData& outModel);
 		static void LoadVertices(const aiMesh* mesh, MeshData& meshData);
 		static void LoadBones(const aiMesh* mesh, MeshData& meshData, SkeletonData& skeleton);
 		static void LoadIndices(const aiMesh* mesh,	MeshData& meshData);

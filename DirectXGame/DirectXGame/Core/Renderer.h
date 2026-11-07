@@ -25,6 +25,7 @@ struct MatrixBuffer
     DirectX::XMMATRIX world;
     DirectX::XMMATRIX view;
     DirectX::XMMATRIX projection;
+    DirectX::XMMATRIX meshNode;
 };
 
 struct MaterialBuffer
@@ -93,8 +94,8 @@ class Renderer
 
         void UpdateLightBuffer();
         void UpdateMaterialBuffer(const Material& material);
-        void UpdateMatrixBuffer(const DirectX::XMMATRIX& world, const Camera& camera);
-        void UpdateTransformBuffer(const Transform& transform, const Camera& camera);
+        void UpdateMatrixBuffer(const DirectX::XMMATRIX& world, const DirectX::XMMATRIX& meshNode, const Camera& camera);
+        void UpdateTransformBuffer(const Transform& transform, const DirectX::XMMATRIX& meshNode, const Camera& camera);
         void UpdateBoneMatrixBuffer(const std::vector<DirectX::XMFLOAT4X4>& matrices);
         void ClearFrame();
 };

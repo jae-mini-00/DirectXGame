@@ -11,6 +11,7 @@
 #include <DirectXMath.h>
 #include <memory>
 #include <utility>
+#include <chrono>
 
 Camera* gCamera = nullptr;
 
@@ -66,6 +67,14 @@ HRESULT AddModelToScene(const Renderer& renderer, Scene& scene, const char* file
 
     if (FAILED(modelHr))
         return modelHr;
+
+    const auto& clips = model->model.GetAnimationClip();
+
+    if (!clips.empty())
+    {
+        model->animator.Play(&clips[1], true);
+        Logger::Info("AnimationTest", "Playing animation clip 0");
+    }
 
     scene.AddObject(std::move(model));
     return S_OK;
@@ -125,9 +134,9 @@ int WINAPI WinMain
     DirectX::XMFLOAT3 rotation;
 
 
-    scale = { 0.1f, 0.1f, 0.1f };
-    position = { 0.0f, -1.0f, 0.0f };
-    rotation = { -90.0f, 0.0f, 180.0f };
+    scale = { 0.01f, 0.01f, 0.01f };
+    position = { 0.0f, -5.0f, 0.0f };
+    rotation = { 0.0f, 0.0f, 0.0f };
     hr = AddModelToScene(renderer, scene, Paths::ManModel, position, scale, rotation);
     if (FAILED(hr))
     {
@@ -142,6 +151,7 @@ int WINAPI WinMain
 
     Camera camera(width, height);
     gCamera = &camera;
+    auto previousTime = std::chrono::steady_clock::now();
     while (msg.message != WM_QUIT)
     {
         if (PeekMessage(&msg, nullptr,
@@ -152,7 +162,14 @@ int WINAPI WinMain
         }
         else
         {
-            SceneUpdate(scene, 0.0);
+            auto currentTime = std::chrono::steady_clock::now();
+
+            double deltaTime =
+                std::chrono::duration<double>(currentTime - previousTime).count();
+
+            previousTime = currentTime;
+
+            SceneUpdate(scene, deltaTime);
             renderer.BeginFrame();
             renderer.Draw(scene, camera);
             renderer.EndFrame();

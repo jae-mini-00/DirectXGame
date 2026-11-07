@@ -372,24 +372,20 @@ HRESULT Renderer::CreateDepthBuffer(HWND hwnd)
 
 // TODO: MatrixBuffer를 PerFrame(View/Projection)과
 //       PerObject(World) Constant Buffer로 분리
-void Renderer::UpdateMatrixBuffer(const DirectX::XMMATRIX& world, const Camera& camera)
+void Renderer::UpdateMatrixBuffer(const DirectX::XMMATRIX& world, const DirectX::XMMATRIX& meshNode, const Camera& camera)
 {
     MatrixBuffer matrixData = {};
 
-    matrixData.world =
-        DirectX::XMMatrixTranspose(world);
-
-    matrixData.view =
-        DirectX::XMMatrixTranspose(camera.GetView());
-
-    matrixData.projection =
-        DirectX::XMMatrixTranspose(camera.GetProjection());
+    matrixData.world = DirectX::XMMatrixTranspose(world);
+    matrixData.view = DirectX::XMMatrixTranspose(camera.GetView());
+    matrixData.projection = DirectX::XMMatrixTranspose(camera.GetProjection());
+    matrixData.meshNode = DirectX::XMMatrixTranspose(meshNode);
 
     context->UpdateSubresource(matrixBuffer, 0, nullptr,
         &matrixData, 0, 0);
 }
 
-void Renderer::UpdateTransformBuffer(const Transform& transform, const Camera& camera)
+void Renderer::UpdateTransformBuffer(const Transform& transform, const DirectX::XMMATRIX& meshNode, const Camera& camera)
 {
     DirectX::XMMATRIX scale =
         DirectX::XMMatrixScaling(transform.scale.x,
@@ -403,7 +399,7 @@ void Renderer::UpdateTransformBuffer(const Transform& transform, const Camera& c
         DirectX::XMMatrixTranslation(transform.position.x,
             transform.position.y, transform.position.z);
 
-    UpdateMatrixBuffer(scale * rotation * translation, camera);
+    UpdateMatrixBuffer(scale * rotation * translation, meshNode, camera);
 }
 
 void Renderer::UpdateMaterialBuffer(const Material& material)
@@ -474,7 +470,6 @@ void Renderer::Draw(const Scene& scene, const Camera& camera)
     {
         const GameObject* object = scene[i];
 
-        UpdateTransformBuffer(object->transform, camera);
         UpdateBoneMatrixBuffer(object->animator.GetSkinningMatrices());
 
         const std::vector<Mesh>& meshes = object->model.GetMeshes();
@@ -495,6 +490,9 @@ void Renderer::Draw(const Scene& scene, const Camera& camera)
                 Logger::Error("Renderer", "Node global transform not found");
                 continue;
             }
+
+            DirectX::XMMATRIX meshNode = DirectX::XMLoadFloat4x4(nodeGlobalTransform);
+            UpdateTransformBuffer(object->transform, meshNode, camera);
 
             const Mesh& mesh = meshes[meshIndex];
             const Material& material = materials[mesh.GetMaterialIndex()];

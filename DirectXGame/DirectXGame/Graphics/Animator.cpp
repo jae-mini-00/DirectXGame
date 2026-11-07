@@ -131,7 +131,9 @@ void Animator::CalculateGlobalTransforms(const NodeHierarchyData& hierarchy)
 	for (size_t i = 0; i < hierarchy.nodes.size(); ++i)
 	{
 		const NodeData& node = hierarchy.nodes[i];
-		DirectX::XMMATRIX transform = DirectX::XMLoadFloat4x4(&node.localTransform);
+		const DirectX::XMFLOAT4X4& local = (currentClip == nullptr && node.hasBindPose)
+			? node.bindLocalTransform : node.localTransform;
+		DirectX::XMMATRIX transform = DirectX::XMLoadFloat4x4(&local);
 
 		if (currentClip != nullptr)
 		{
@@ -158,15 +160,15 @@ void Animator::CalculateSkinningMatrices(const SkeletonData& skeleton)
 
 	for (unsigned int i = 0; i < skeleton.bones.size(); ++i)
 	{
-		const BoneData &bone = skeleton.bones[i];
+		const BoneData& bone = skeleton.bones[i];
 
-		if (bone.nodeIndex < 0 || bone.nodeIndex >= globalTransforms.size())
+		if (bone.nodeIndex < 0 || static_cast<size_t>(bone.nodeIndex) >= globalTransforms.size())
 			continue;
-		
+
+		DirectX::XMFLOAT4X4 skining = {};
 		DirectX::XMMATRIX  offsetMatrix = DirectX::XMLoadFloat4x4(&bone.offsetMatrix);
 		DirectX::XMMATRIX transform = DirectX::XMLoadFloat4x4(&globalTransforms[bone.nodeIndex]);
 		DirectX::XMMATRIX result = DirectX::XMMatrixMultiply(offsetMatrix, transform);
-		DirectX::XMFLOAT4X4 skining = {};
 
 		DirectX::XMStoreFloat4x4(&skining, result);
 		skinningMatrices[i] = skining;
