@@ -139,6 +139,21 @@ bool ModelLoader::AddBoneInfluence(Vertex& vertex, int boneIndex, float weight)
             return true;
         }
     }
+
+    size_t minIndex = 0;
+
+    for (size_t i = 1; i < 4; ++i)
+    {
+        if (vertex.boneWeights[i] < vertex.boneWeights[minIndex])
+            minIndex = i;
+    }
+    if (weight > vertex.boneWeights[minIndex])
+    {
+        vertex.boneIndices[minIndex] = boneIndex;
+        vertex.boneWeights[minIndex] = weight;
+        return true;
+    }
+
     return false;
 }
 
@@ -239,15 +254,29 @@ void ModelLoader::LoadBones(const aiMesh* mesh, MeshData& meshData, SkeletonData
         {
             unsigned int vertexId = bone->mWeights[j].mVertexId;
 
-            // TODO: 정점 하나가 4개를 초과하는 Bone의 영향을 받을 경우,
-            // 가중치가 가장 큰 4개만 남기도록 처리한다.
-
-            // TODO: Vertex Bone Weight 합계가 1이 되도록 정규화한다.
-
-            // TODO: Assimp / DirectX 행렬 규약 및 변환 결과를 검증한다.
             if (vertexId < meshData.vertices.size())
                 AddBoneInfluence(meshData.vertices[vertexId],
                     boneIndex, bone->mWeights[j].mWeight);
+        }
+    }
+
+    for (Vertex& vertex : meshData.vertices)
+    {
+        float totalWeight = 0.0f;
+
+        for (size_t i = 0; i < 4; ++i)
+        {
+            if (vertex.boneIndices[i] != -1)
+                totalWeight += vertex.boneWeights[i];
+        }
+
+        if (totalWeight <= 0.0f)
+            continue;
+
+        for (size_t i = 0; i < 4; ++i)
+        {
+            if (vertex.boneIndices[i] != -1)
+                vertex.boneWeights[i] /= totalWeight;
         }
     }
 }
