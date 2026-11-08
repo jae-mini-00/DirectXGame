@@ -20,7 +20,6 @@ HRESULT Model::Initialize(ID3D11Device* device,
         Mesh mesh;
 
         HRESULT hr = mesh.Initialize(device, meshData);
-
         if (FAILED(hr))
             return hr;
 

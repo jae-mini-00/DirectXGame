@@ -15,7 +15,8 @@ LoadResult ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel
     std::filesystem::path parent_path = filePath.parent_path();
 
     const aiScene* scene = importer.ReadFile(filePath.string(), 
-        aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_PopulateArmatureData);
+        aiProcess_Triangulate | aiProcess_GenSmoothNormals 
+        | aiProcess_PopulateArmatureData | aiProcess_ConvertToLeftHanded);
 
     if (scene == nullptr)
     {
@@ -376,6 +377,9 @@ void ModelLoader::ResolveBindPose(const aiScene* scene, const SkeletonData& skel
     ApplyBindLocalTransforms(hierarchy, bindGlobals);
     Logger::Info("ResolveBindPose", "Bind local transforms resolved");
 }
+
+#include <algorithm>
+#include <cfloat>
 
 void ModelLoader::LoadVertices(const aiMesh* mesh, MeshData& meshData)
 {

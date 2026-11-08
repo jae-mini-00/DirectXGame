@@ -68,12 +68,13 @@ HRESULT AddModelToScene(const Renderer& renderer, Scene& scene, const char* file
     if (FAILED(modelHr))
         return modelHr;
 
+
     const auto& clips = model->model.GetAnimationClip();
 
     if (!clips.empty())
     {
+        Logger::Info("AnimationTest", clips[1].name.c_str());
         model->animator.Play(&clips[1], true);
-        Logger::Info("AnimationTest", "Playing animation clip 0");
     }
 
     scene.AddObject(std::move(model));
@@ -134,13 +135,13 @@ int WINAPI WinMain
     DirectX::XMFLOAT3 rotation;
 
 
-    scale = { 0.01f, 0.01f, 0.01f };
+    scale = { 0.1f, 0.1f, 0.1f };
     position = { 0.0f, -5.0f, 0.0f };
     rotation = { 0.0f, 0.0f, 0.0f };
-    hr = AddModelToScene(renderer, scene, Paths::ManModel, position, scale, rotation);
+    hr = AddModelToScene(renderer, scene, Paths::Player, position, scale, rotation);
     if (FAILED(hr))
     {
-        MessageBox(hwnd, L"ManModel Add Failed", L"Error", MB_OK);
+        MessageBox(hwnd, L"Player Add Failed", L"Error", MB_OK);
         return 0;
     }
 
@@ -170,6 +171,7 @@ int WINAPI WinMain
             previousTime = currentTime;
 
             SceneUpdate(scene, deltaTime);
+            //SceneUpdate(scene, 0.0);
             renderer.BeginFrame();
             renderer.Draw(scene, camera);
             renderer.EndFrame();

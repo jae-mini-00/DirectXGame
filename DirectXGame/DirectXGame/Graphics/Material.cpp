@@ -78,6 +78,8 @@ HRESULT Material::Initialize(ID3D11Device* device,
         std::wstring texturePath =
             ToWideString(data.texturePath);
 
+        // TODO: FBX에 저장된 텍스처 절대경로를 그대로 사용하지 않고,
+        //       파일명만 추출하여 모델 파일의 폴더에서 검색하도록 개선한다.
         RETURN_IF_FAILED(DirectX::CreateWICTextureFromFile(
                 device, context, texturePath.c_str(),
                 nullptr, &textureView));

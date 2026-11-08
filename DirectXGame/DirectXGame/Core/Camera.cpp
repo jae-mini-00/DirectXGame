@@ -10,9 +10,8 @@ Camera::Camera(float width, float height)
 
     float aspect = width / height;
 
-    projection = DirectX::XMMatrixPerspectiveFovLH(
-            DirectX::XMConvertToRadians(60.0f), aspect,
-            0.1f, 100.0f);
+    projection = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(60.0f),
+        aspect, 0.1f, 100.0f);
 }
 
 void Camera::Zoom(float delta)
@@ -28,14 +27,9 @@ void Camera::Zoom(float delta)
 
 void Camera::UpdateView()
 {
-    DirectX::XMVECTOR eye =
-        DirectX::XMVectorSet(0.0f, 0.0f, -distance, 0.0f);
-
-    DirectX::XMVECTOR target =
-        DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-
-    DirectX::XMVECTOR up =
-        DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+    DirectX::XMVECTOR eye = DirectX::XMVectorSet(0.0f, 0.0f, -distance, 0.0f);
+    DirectX::XMVECTOR target = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+    DirectX::XMVECTOR up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
     view = DirectX::XMMatrixLookAtLH(eye, target, up);
 
