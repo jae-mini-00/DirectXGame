@@ -57,82 +57,6 @@ LoadResult ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel
     return lr;
 }
 
-int ModelLoader::LoadMeshes(const aiScene* scene, ModelData& outModel)
-{
-    int success = 0;
-    unsigned int DefaultMateriaIndex = static_cast<unsigned int>(outModel.materials.size()) - 1;
-
-    for (unsigned int i = 0; i < scene->mNumMeshes; ++i)
-    {
-        unsigned int resolvedMaterialIndex = DefaultMateriaIndex;
-        if (scene->mMeshes[i] == nullptr)
-        {
-            Logger::Error("ModelLoader", "Mesh pointer is null. Skipping this mesh.");
-            continue;
-        } 
-        else if (scene->mMeshes[i]->mNumVertices == 0 || scene->mMeshes[i]->mNumFaces == 0)
-        {
-            Logger::Warning("ModelLoader", "Mesh has no vertices or faces. Skipping this mesh.");
-            continue;
-        }
-        else if (scene->mMeshes[i]->mMaterialIndex >= scene->mNumMaterials)
-            Logger::Warning("ModelLoader", "Material index is out of range. Using default material.");
-        else
-            resolvedMaterialIndex = scene->mMeshes[i]->mMaterialIndex;
-        
-        outModel.meshes.push_back(LoadMesh(scene->mMeshes[i], resolvedMaterialIndex, outModel.skeleton));
-        outModel.meshIndexs.push_back(i);
-        success++;
-    }
-    return success;
-}
-
-MeshData ModelLoader::LoadMesh(const aiMesh* mesh, unsigned int materialIndex, SkeletonData& skeleton)
-{
-    MeshData meshData = {};
-
-    meshData.materialIndex = materialIndex;
-    LoadVertices(mesh, meshData);
-    LoadBones(mesh, meshData, skeleton);
-    LoadIndices(mesh, meshData);
-
-    return meshData;
-}
-
-void ModelLoader::LoadMaterials(const aiScene* scene, ModelData& outModel
-, const std::filesystem::path& parentPath)
-{
-    for (unsigned int i = 0; i < scene->mNumMaterials; ++i)
-    {
-        const aiMaterial* material = scene->mMaterials[i];
-        MaterialData materialData;
-        aiColor4D color;
-
-        if (AI_SUCCESS == aiGetMaterialColor(material,
-            AI_MATKEY_COLOR_DIFFUSE, &color))
-        {
-            materialData.baseColor = { color.r, color.g,
-                color.b, color.a };
-        }
-        if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0)
-        {
-            aiString texturePath;
-
-            if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) == AI_SUCCESS)
-                materialData.texturePath = (parentPath / texturePath.C_Str()).string();
-        }
-        else
-        {
-            std::string msg = parentPath.string() + " Diffuse Texture not found";
-            Logger::Info("ModelLoader", msg.c_str());
-        }
-
-        outModel.materials.push_back(materialData);
-    }
-    MaterialData defaultMaterial;
-    outModel.materials.push_back(defaultMaterial);
-}
-
 bool ModelLoader::AddBoneInfluence(Vertex& vertex, int boneIndex, float weight)
 {
     for (size_t i = 0; i < 4; i++)
@@ -378,8 +302,45 @@ void ModelLoader::ResolveBindPose(const aiScene* scene, const SkeletonData& skel
     Logger::Info("ResolveBindPose", "Bind local transforms resolved");
 }
 
-#include <algorithm>
-#include <cfloat>
+bool ModelLoader::FillMissingPRS(AnimationChannel& channel, const NodeHierarchyData& hierarchy)
+{
+    auto it = hierarchy.nameToIndex.find(channel.name);
+    if (it == hierarchy.nameToIndex.end())
+        return false;
+
+    if (!channel.positions.empty() && !channel.rotations.empty() && !channel.scales.empty())
+        return true;
+    if (channel.positions.empty() && channel.rotations.empty() && channel.scales.empty())
+        return false;
+
+    const NodeData& node = hierarchy.nodes[it->second];
+    DirectX::XMVECTOR scale, rotation, position;
+    DirectX::XMMATRIX local = DirectX::XMLoadFloat4x4(&node.localTransform);
+    bool success = DirectX::XMMatrixDecompose(&scale, &rotation, &position, local);
+    if (!success)
+        return false;
+
+    if (channel.positions.empty())
+    {
+        DirectX::XMFLOAT3 value;
+        DirectX::XMStoreFloat3(&value, position);
+        channel.positions.push_back({ 0.0, value });
+    }
+    if (channel.rotations.empty())
+    {
+        DirectX::XMFLOAT4 value;
+        DirectX::XMStoreFloat4(&value, rotation);
+        channel.rotations.push_back({ 0.0, value });
+    }
+    if (channel.scales.empty())
+    {
+        DirectX::XMFLOAT3 value;
+        DirectX::XMStoreFloat3(&value, scale);
+        channel.scales.push_back({ 0.0, value });
+    }
+
+    return true;
+}
 
 void ModelLoader::LoadVertices(const aiMesh* mesh, MeshData& meshData)
 {
@@ -530,6 +491,11 @@ void ModelLoader::LoadAnimations(const aiScene* scene, ModelData& outModel)
                 sframe.scale.z = node->mScalingKeys[k].mValue.z;
                 channel.scales.push_back(sframe);
             }
+            if (!FillMissingPRS(channel, outModel.nodeHierarchy))
+            {
+                Logger::Warning("ModelLoader", "Invalid animation channel");
+                continue;
+            }
             clip.channels.push_back(channel);
         }
         outModel.animationClips.push_back(clip);
@@ -564,4 +530,80 @@ void ModelLoader::LoadNodes(const aiNode* node, NodeHierarchyData& hierarchy, in
     for (unsigned int i = 0; i < node->mNumChildren; ++i)
         LoadNodes(node->mChildren[i],
             hierarchy, nodeIndex);
+}
+
+int ModelLoader::LoadMeshes(const aiScene* scene, ModelData& outModel)
+{
+    int success = 0;
+    unsigned int DefaultMateriaIndex = static_cast<unsigned int>(outModel.materials.size()) - 1;
+
+    for (unsigned int i = 0; i < scene->mNumMeshes; ++i)
+    {
+        unsigned int resolvedMaterialIndex = DefaultMateriaIndex;
+        if (scene->mMeshes[i] == nullptr)
+        {
+            Logger::Error("ModelLoader", "Mesh pointer is null. Skipping this mesh.");
+            continue;
+        }
+        else if (scene->mMeshes[i]->mNumVertices == 0 || scene->mMeshes[i]->mNumFaces == 0)
+        {
+            Logger::Warning("ModelLoader", "Mesh has no vertices or faces. Skipping this mesh.");
+            continue;
+        }
+        else if (scene->mMeshes[i]->mMaterialIndex >= scene->mNumMaterials)
+            Logger::Warning("ModelLoader", "Material index is out of range. Using default material.");
+        else
+            resolvedMaterialIndex = scene->mMeshes[i]->mMaterialIndex;
+
+        outModel.meshes.push_back(LoadMesh(scene->mMeshes[i], resolvedMaterialIndex, outModel.skeleton));
+        outModel.meshIndexs.push_back(i);
+        success++;
+    }
+    return success;
+}
+
+MeshData ModelLoader::LoadMesh(const aiMesh* mesh, unsigned int materialIndex, SkeletonData& skeleton)
+{
+    MeshData meshData = {};
+
+    meshData.materialIndex = materialIndex;
+    LoadVertices(mesh, meshData);
+    LoadBones(mesh, meshData, skeleton);
+    LoadIndices(mesh, meshData);
+
+    return meshData;
+}
+
+void ModelLoader::LoadMaterials(const aiScene* scene, ModelData& outModel
+    , const std::filesystem::path& parentPath)
+{
+    for (unsigned int i = 0; i < scene->mNumMaterials; ++i)
+    {
+        const aiMaterial* material = scene->mMaterials[i];
+        MaterialData materialData;
+        aiColor4D color;
+
+        if (AI_SUCCESS == aiGetMaterialColor(material,
+            AI_MATKEY_COLOR_DIFFUSE, &color))
+        {
+            materialData.baseColor = { color.r, color.g,
+                color.b, color.a };
+        }
+        if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0)
+        {
+            aiString texturePath;
+
+            if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) == AI_SUCCESS)
+                materialData.texturePath = (parentPath / texturePath.C_Str()).string();
+        }
+        else
+        {
+            std::string msg = parentPath.string() + " Diffuse Texture not found";
+            Logger::Info("ModelLoader", msg.c_str());
+        }
+
+        outModel.materials.push_back(materialData);
+    }
+    MaterialData defaultMaterial;
+    outModel.materials.push_back(defaultMaterial);
 }

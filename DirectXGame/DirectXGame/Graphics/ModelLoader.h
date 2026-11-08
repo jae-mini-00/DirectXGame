@@ -37,6 +37,7 @@ class ModelLoader
 		
 		static bool AddBoneInfluence(Vertex& vertex, int boneIndex, float weight);
 
+		static bool FillMissingPRS(AnimationChannel& channel, const NodeHierarchyData& hierarchy);
 		static bool BuildDefaultNodeGlobals(const NodeHierarchyData& hierarchy, std::vector<DirectX::XMFLOAT4X4>& globals);
 		static void CollectBoneBindGlobals(const aiScene* scene, const SkeletonData& skeleton, std::vector<DirectX::XMFLOAT4X4>& globals);
 		static void ApplyBindLocalTransforms(NodeHierarchyData& hierarchy, const std::vector<DirectX::XMFLOAT4X4>& globals);

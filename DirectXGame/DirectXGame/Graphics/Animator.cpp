@@ -110,8 +110,7 @@ DirectX::XMFLOAT3 Animator::InterpolateScale(const std::vector<ScaleKeyframe>& s
 	return scale;
 }
 
-DirectX::XMMATRIX Animator::CalculateLocalTransform(
-	const AnimationChannel& channel, double time) const
+DirectX::XMMATRIX Animator::CalculateLocalTransform(const AnimationChannel& channel, double time) const
 {
 	DirectX::XMFLOAT3 position = InterpolatePosition(channel.positions, time);
 	DirectX::XMFLOAT4 rotation = InterpolateRotation(channel.rotations, time);
@@ -120,7 +119,7 @@ DirectX::XMMATRIX Animator::CalculateLocalTransform(
 	DirectX::XMMATRIX S = DirectX::XMMatrixScalingFromVector(DirectX::XMLoadFloat3(&scale));
 	DirectX::XMMATRIX R = DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rotation));
 	DirectX::XMMATRIX T = DirectX::XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&position));
-
+		
 	return S * R * T;
 }
 
