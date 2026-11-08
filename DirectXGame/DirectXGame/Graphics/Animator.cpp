@@ -162,7 +162,10 @@ void Animator::CalculateSkinningMatrices(const SkeletonData& skeleton)
 		const BoneData& bone = skeleton.bones[i];
 
 		if (bone.nodeIndex < 0 || static_cast<size_t>(bone.nodeIndex) >= globalTransforms.size())
+		{
+			DirectX::XMStoreFloat4x4(&skinningMatrices[i], DirectX::XMMatrixIdentity());
 			continue;
+		}
 
 		DirectX::XMFLOAT4X4 skining = {};
 		DirectX::XMMATRIX  offsetMatrix = DirectX::XMLoadFloat4x4(&bone.offsetMatrix);
