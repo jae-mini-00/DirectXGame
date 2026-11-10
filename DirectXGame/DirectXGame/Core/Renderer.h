@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Graphics/BonePaletteBuffer.h"
 #include "Scene/Scene.h"
 #include <windows.h>
 #include <d3d11.h>
@@ -44,6 +45,12 @@ struct LightBuffer
     int padding[3] = { 0 , 0, 0 };
 };
 
+struct BoneInfoBuffer
+{
+    UINT boneCount = 0;
+    float padding[3] = {};
+};
+
 struct BoneMatrixBuffer
 {
     DirectX::XMFLOAT4X4 bones[MAX_BONES];
@@ -74,7 +81,8 @@ class Renderer
         ID3D11DepthStencilView* depthStencilView;
         ID3D11Buffer* materialBuffer;
         ID3D11Buffer* lightBuffer;
-        ID3D11Buffer* boneMatrixBuffer;
+        BonePaletteBuffer bonePaletteBuffer;
+        ID3D11Buffer* boneInfoBuffer;
 
         void BindVertexStage();
         void BindPixelStage();
@@ -90,12 +98,11 @@ class Renderer
         HRESULT CreateDepthBuffer(HWND hwnd);
         HRESULT CreateMaterialBuffer();
         HRESULT CreateLightBuffer();
-        HRESULT CreateBoneMatrixBuffer();
+        HRESULT CreateBoneInfoBuffer();
 
         void UpdateLightBuffer();
         void UpdateMaterialBuffer(const Material& material);
         void UpdateMatrixBuffer(const DirectX::XMMATRIX& world, const DirectX::XMMATRIX& meshNode, const Camera& camera);
         void UpdateTransformBuffer(const Transform& transform, const DirectX::XMMATRIX& meshNode, const Camera& camera);
-        void UpdateBoneMatrixBuffer(const std::vector<DirectX::XMFLOAT4X4>& matrices);
         void ClearFrame();
 };

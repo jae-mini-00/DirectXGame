@@ -1,3 +1,5 @@
+StructuredBuffer<matrix> bones : register(t0);
+
 cbuffer MatrixBuffer : register(b0)
 {
     matrix world;
@@ -6,9 +8,10 @@ cbuffer MatrixBuffer : register(b0)
     matrix meshNode;
 };
 
-cbuffer BoneMatrixBuffer : register(b1)
+cbuffer BoneInfoBuffer : register(b1)
 {
-    matrix bones[128];
+    uint boneCount;
+    float3 padding;
 };
 
 struct VSInput
@@ -37,7 +40,7 @@ float4x4 CalculateBlendMatrix(int4 boneIndices, float4 boneWeights)
         int index = boneIndices[i];
         float weight = boneWeights[i];
 
-        if (index < 0 || index >= 128 || weight <= 0.0f)
+        if (index < 0 || (uint)index >= boneCount || weight <= 0.0f)
             continue;
 
         blend += bones[index] * weight;
