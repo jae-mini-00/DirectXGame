@@ -145,9 +145,14 @@ DXGI_SWAP_CHAIN_DESC Renderer::CreateswapChainDescInfo(HWND hwnd)
 HRESULT Renderer::CreateRenderTarget()
 {
     ID3D11Texture2D* backBuffer = nullptr;
+    D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+
+    rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+    rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+    rtvDesc.Texture2D.MipSlice = 0;
     RETURN_IF_FAILED(swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&backBuffer)));
 
-    RETURN_IF_FAILED_AND_RELEASE(device->CreateRenderTargetView(backBuffer, nullptr, 
+    RETURN_IF_FAILED_AND_RELEASE(device->CreateRenderTargetView(backBuffer, &rtvDesc,
         &renderTargetView), backBuffer);
     backBuffer->Release();
     context->OMSetRenderTargets(1, &renderTargetView, nullptr);

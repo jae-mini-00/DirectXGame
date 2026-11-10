@@ -135,12 +135,12 @@ int WINAPI WinMain
     DirectX::XMFLOAT3 rotation;
 
 
-    scale = { 0.1f, 0.1f, 0.1f };
-    //scale = { 0.01f, 0.01f, 0.01f };
+    //scale = { 0.1f, 0.1f, 0.1f };
+    scale = { 0.01f, 0.01f, 0.01f };
     position = { 0.0f, -5.0f, 0.0f };
     rotation = { 0.0f, 0.0f, 0.0f };
-    hr = AddModelToScene(renderer, scene, Paths::Player, position, scale, rotation);
-    //hr = AddModelToScene(renderer, scene, Paths::ManModel, position, scale, rotation);
+    //hr = AddModelToScene(renderer, scene, Paths::Player, position, scale, rotation);
+    hr = AddModelToScene(renderer, scene, Paths::ManModel, position, scale, rotation);
     if (FAILED(hr))
     {
         MessageBox(hwnd, L"Player Add Failed", L"Error", MB_OK);
