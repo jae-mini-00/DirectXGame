@@ -530,6 +530,22 @@ bool ModelLoader::LoadAnimations(const aiScene* scene, ModelData& outModel)
                 Logger::Error("ModelLoader", "Animation channel pointer is null");
                 return false;
             }
+            if (node->mNumPositionKeys > 0 && node->mPositionKeys == nullptr)
+            {
+                Logger::Error("ModelLoader", "Animation position key array is null");
+                return false;
+            }
+            if (node->mNumRotationKeys > 0 && node->mRotationKeys == nullptr)
+            {
+                Logger::Error("ModelLoader", "Animation rotation key array is null");
+                return false;
+            }
+
+            if (node->mNumScalingKeys > 0 && node->mScalingKeys == nullptr)
+            {
+                Logger::Error("ModelLoader", "Animation scaling key array is null");
+                return false;
+            }
 
             channel.name = node->mNodeName.C_Str();
 
