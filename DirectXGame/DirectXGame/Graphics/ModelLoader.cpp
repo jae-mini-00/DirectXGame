@@ -363,7 +363,7 @@ bool ModelLoader::AreMatricesEqual(const DirectX::XMFLOAT4X4& a, const DirectX::
 }
 
 
-bool ModelLoader::LoadVertices(const aiMesh* mesh, MeshData& meshData)
+void ModelLoader::LoadVertices(const aiMesh* mesh, MeshData& meshData)
 {
     for (unsigned int j = 0; j < mesh->mNumVertices; ++j)
     {
@@ -385,18 +385,26 @@ bool ModelLoader::LoadVertices(const aiMesh* mesh, MeshData& meshData)
         }
         meshData.vertices.push_back(vertex);
     }
-
-    return true;
 }
 
 bool ModelLoader::LoadBones(const aiMesh* mesh, MeshData& meshData, SkeletonData& skeleton)
 {
+    if (mesh->mNumBones > 0 && mesh->mBones == nullptr)
+    {
+        Logger::Error("ModelLoader", "Mesh bone array is null");
+        return false;
+    }
     for (unsigned int i = 0; i < mesh->mNumBones; ++i)
     {
         const aiBone* bone = mesh->mBones[i];
         if (bone == nullptr)
         {
             Logger::Error("ModelLoader", "Bone pointer is null");
+            return false;
+        }
+        if (bone->mNumWeights > 0 && bone->mWeights == nullptr)
+        {
+            Logger::Error("ModelLoader", "Bone weight array is null");
             return false;
         }
 
@@ -645,6 +653,12 @@ bool ModelLoader::LoadMesh(const aiMesh* mesh, unsigned int materialIndex, Skele
 {
 
     outMesh.materialIndex = materialIndex;
+
+    if (mesh->mNumVertices > 0 && mesh->mVertices == nullptr)
+    {
+        Logger::Error("ModelLoader", "Mesh vertex array is null");
+        return false;
+    }
     LoadVertices(mesh, outMesh);
 
     if (!LoadBones(mesh, outMesh, skeleton))
