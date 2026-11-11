@@ -36,7 +36,7 @@ class ModelLoader
 	private:
 		
 		static bool AddBoneInfluence(Vertex& vertex, int boneIndex, float weight);
-
+		static bool AreMatricesEqual(const DirectX::XMFLOAT4X4& a, const DirectX::XMFLOAT4X4& b);
 		static bool FillMissingPRS(AnimationChannel& channel, const NodeHierarchyData& hierarchy);
 		static bool BuildDefaultNodeGlobals(const NodeHierarchyData& hierarchy, std::vector<DirectX::XMFLOAT4X4>& globals);
 		static void CollectBoneBindGlobals(const aiScene* scene, const SkeletonData& skeleton, std::vector<DirectX::XMFLOAT4X4>& globals);
@@ -47,12 +47,12 @@ class ModelLoader
 		static void ResolveBoneNodes(SkeletonData& skeleton, const NodeHierarchyData& hierarchy);
 		static bool ResolveBindPose(const aiScene* scene, const SkeletonData& skeleton, NodeHierarchyData& hierarchy);
 
-		static MeshData LoadMesh(const aiMesh* mesh, unsigned int materialIndex, SkeletonData& skeleton);
+		static bool LoadMesh(const aiMesh* mesh, unsigned int materialIndex, SkeletonData& skeleton, MeshData& outMesh);
 		static void LoadMaterials(const aiScene* scene, ModelData& outModel,
 			const std::filesystem::path& parentPath);
 		static int LoadMeshes(const aiScene* scene, ModelData& outModel);
 		static void LoadVertices(const aiMesh* mesh, MeshData& meshData);
-		static void LoadBones(const aiMesh* mesh, MeshData& meshData, SkeletonData& skeleton);
+		static bool LoadBones(const aiMesh* mesh, MeshData& meshData, SkeletonData& skeleton);
 		static void LoadIndices(const aiMesh* mesh,	MeshData& meshData);
 		static void LoadAnimations(const aiScene* scene, ModelData& outModel);
 		static bool LoadNodes(const aiNode* node, NodeHierarchyData& hierarchy, int parentIndex);

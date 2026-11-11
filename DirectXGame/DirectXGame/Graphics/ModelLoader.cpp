@@ -34,9 +34,15 @@ LoadResult ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel
     outModel.meshIndexs.clear();
 
     LoadMaterials(scene, outModel, parent_path);
-    if (LoadMeshes(scene, outModel) <= 0)
-        return { false,  LoadError::NoValidMesh, "Model contains no valid meshes." };
-        
+
+    int meshCount = LoadMeshes(scene, outModel);
+
+    if (meshCount < 0)
+        return { false, LoadError::InvalidScene, "Failed to load mesh data." };
+
+    if (meshCount == 0)
+        return { false, LoadError::NoValidMesh, "Model contains no valid meshes." };
+   
     if (!LoadNodes(scene->mRootNode, outModel.nodeHierarchy, -1))
         return { false, LoadError::InvalidScene, "Failed to load node hierarchy." };
 
@@ -338,6 +344,20 @@ bool ModelLoader::FillMissingPRS(AnimationChannel& channel, const NodeHierarchyD
     return true;
 }
 
+bool ModelLoader::AreMatricesEqual(const DirectX::XMFLOAT4X4& a, const DirectX::XMFLOAT4X4& b)
+{
+    for (unsigned int i = 0; i < 4; ++i)
+    {
+        for (unsigned int j = 0; j < 4; ++j)
+        {
+            if (std::fabs(a.m[i][j] - b.m[i][j]) > 1e-4f)
+                return false;
+        }
+    }
+    return true;
+}
+
+
 void ModelLoader::LoadVertices(const aiMesh* mesh, MeshData& meshData)
 {
     for (unsigned int j = 0; j < mesh->mNumVertices; ++j)
@@ -362,11 +382,17 @@ void ModelLoader::LoadVertices(const aiMesh* mesh, MeshData& meshData)
     }
 }
 
-void ModelLoader::LoadBones(const aiMesh* mesh, MeshData& meshData, SkeletonData& skeleton)
+bool ModelLoader::LoadBones(const aiMesh* mesh, MeshData& meshData, SkeletonData& skeleton)
 {
     for (unsigned int i = 0; i < mesh->mNumBones; ++i)
     {
         const aiBone* bone = mesh->mBones[i];
+        if (bone == nullptr)
+        {
+            Logger::Error("ModelLoader", "Bone pointer is null");
+            return false;
+        }
+
         const char* name = bone->mName.C_Str();
         int boneIndex;
 
@@ -381,7 +407,17 @@ void ModelLoader::LoadBones(const aiMesh* mesh, MeshData& meshData, SkeletonData
             skeleton.bones.push_back(bonedata);
         }
         else
+        {
             boneIndex = skeleton.nameToIndex[name];
+            DirectX::XMFLOAT4X4 offset = ConvertMatrix(bone->mOffsetMatrix);
+
+            if (!AreMatricesEqual(skeleton.bones[boneIndex].offsetMatrix, offset))
+            {
+                std::string msg = "Bone offset mismatch: " + std::string(name);
+                Logger::Error("ModelLoader", msg.c_str());
+                return false;
+            }
+        }
 
         for (unsigned int j = 0; j < bone->mNumWeights; ++j)
         {
@@ -412,6 +448,8 @@ void ModelLoader::LoadBones(const aiMesh* mesh, MeshData& meshData, SkeletonData
                 vertex.boneWeights[i] /= totalWeight;
         }
     }
+
+    return true;
 }
 
 void ModelLoader::LoadIndices(const aiMesh* mesh, MeshData& meshData)
@@ -555,23 +593,30 @@ int ModelLoader::LoadMeshes(const aiScene* scene, ModelData& outModel)
         else
             resolvedMaterialIndex = scene->mMeshes[i]->mMaterialIndex;
 
-        outModel.meshes.push_back(LoadMesh(scene->mMeshes[i], resolvedMaterialIndex, outModel.skeleton));
+        MeshData outMesh = {};
+
+        if (!LoadMesh(scene->mMeshes[i], resolvedMaterialIndex, outModel.skeleton, outMesh))
+            return -1;
+
+        outModel.meshes.push_back(outMesh);
         outModel.meshIndexs.push_back(i);
         success++;
     }
     return success;
 }
 
-MeshData ModelLoader::LoadMesh(const aiMesh* mesh, unsigned int materialIndex, SkeletonData& skeleton)
+bool ModelLoader::LoadMesh(const aiMesh* mesh, unsigned int materialIndex, SkeletonData& skeleton, MeshData& outMesh)
 {
-    MeshData meshData = {};
 
-    meshData.materialIndex = materialIndex;
-    LoadVertices(mesh, meshData);
-    LoadBones(mesh, meshData, skeleton);
-    LoadIndices(mesh, meshData);
+    outMesh.materialIndex = materialIndex;
+    LoadVertices(mesh, outMesh);
 
-    return meshData;
+    if (!LoadBones(mesh, outMesh, skeleton))
+        return false;
+
+    LoadIndices(mesh, outMesh);
+
+    return true;
 }
 
 void ModelLoader::LoadMaterials(const aiScene* scene, ModelData& outModel
