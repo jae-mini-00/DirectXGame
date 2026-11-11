@@ -44,7 +44,7 @@ class ModelLoader
 		static aiMatrix4x4 CalculateNodeGlobalTransform(const aiNode* startNode);
 		static aiNode* FindMeshOwnerNode(aiNode* node, unsigned int meshIndex);
 		static DirectX::XMFLOAT4X4 ConvertMatrix(const aiMatrix4x4& matrix);
-		static void ResolveBoneNodes(SkeletonData& skeleton, const NodeHierarchyData& hierarchy);
+		static bool ResolveBoneNodes(SkeletonData& skeleton, const NodeHierarchyData& hierarchy);
 		static bool ResolveBindPose(const aiScene* scene, const SkeletonData& skeleton, NodeHierarchyData& hierarchy);
 
 		static bool LoadMesh(const aiMesh* mesh, unsigned int materialIndex, SkeletonData& skeleton, MeshData& outMesh);

@@ -46,7 +46,8 @@ LoadResult ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel
     if (!LoadNodes(scene->mRootNode, outModel.nodeHierarchy, -1))
         return { false, LoadError::InvalidScene, "Failed to load node hierarchy." };
 
-    ResolveBoneNodes(outModel.skeleton, outModel.nodeHierarchy);
+    if (!ResolveBoneNodes(outModel.skeleton, outModel.nodeHierarchy))
+        return { false, LoadError::InvalidScene, "Failed to resolve bone nodes." };
 
     if (!ResolveBindPose(scene, outModel.skeleton, outModel.nodeHierarchy))
         return { false, LoadError::InvalidScene, "Failed to resolve bind pose." };
@@ -117,7 +118,7 @@ DirectX::XMFLOAT4X4 ModelLoader::ConvertMatrix(const aiMatrix4x4& matrix)
     return result;
 }
 
-void ModelLoader::ResolveBoneNodes(SkeletonData& skeleton, const NodeHierarchyData& hierarchy)
+bool ModelLoader::ResolveBoneNodes(SkeletonData& skeleton, const NodeHierarchyData& hierarchy)
 {
     for (const auto& [name, boneIndex] : skeleton.nameToIndex)
     {
@@ -126,11 +127,13 @@ void ModelLoader::ResolveBoneNodes(SkeletonData& skeleton, const NodeHierarchyDa
             skeleton.bones[boneIndex].nodeIndex = it->second;
         else
         {
-            std::string msg = name + "node not found";
+            std::string msg = name + " node not found";
             Logger::Error("ModelLoader", msg.c_str());
-            skeleton.bones[boneIndex].nodeIndex = -1;
+            
+            return false;
         }
     }
+    return true;
 }
 
 aiNode* ModelLoader::FindMeshOwnerNode(aiNode* node, unsigned int meshIndex)
