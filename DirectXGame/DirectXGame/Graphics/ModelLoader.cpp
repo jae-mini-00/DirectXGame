@@ -363,7 +363,7 @@ bool ModelLoader::AreMatricesEqual(const DirectX::XMFLOAT4X4& a, const DirectX::
 }
 
 
-void ModelLoader::LoadVertices(const aiMesh* mesh, MeshData& meshData)
+bool ModelLoader::LoadVertices(const aiMesh* mesh, MeshData& meshData)
 {
     for (unsigned int j = 0; j < mesh->mNumVertices; ++j)
     {
@@ -385,6 +385,8 @@ void ModelLoader::LoadVertices(const aiMesh* mesh, MeshData& meshData)
         }
         meshData.vertices.push_back(vertex);
     }
+
+    return true;
 }
 
 bool ModelLoader::LoadBones(const aiMesh* mesh, MeshData& meshData, SkeletonData& skeleton)
@@ -457,15 +459,37 @@ bool ModelLoader::LoadBones(const aiMesh* mesh, MeshData& meshData, SkeletonData
     return true;
 }
 
-void ModelLoader::LoadIndices(const aiMesh* mesh, MeshData& meshData)
+bool ModelLoader::LoadIndices(const aiMesh* mesh, MeshData& meshData)
 {
+    if (mesh->mNumFaces > 0 && mesh->mFaces == nullptr)
+    {
+        Logger::Error("ModelLoader", "Mesh face array is null");
+        return false;
+    }
+
     for (unsigned int i = 0; i < mesh->mNumFaces; ++i)
     {
         const aiFace& face = mesh->mFaces[i];
 
+        if (face.mNumIndices > 0 && face.mIndices == nullptr)
+        {
+            Logger::Error("ModelLoader", "Face index array is null");
+            return false;
+        }
+        
         for (unsigned int j = 0; j < face.mNumIndices; ++j)
+        {
+            if (face.mIndices[j] >= meshData.vertices.size())
+            {
+                Logger::Error("ModelLoader", "Mesh index is out of vertex range");
+                return false;
+            }
+
             meshData.indices.push_back(face.mIndices[j]);
+        }
     }
+
+    return true;
 }
 
 bool ModelLoader::LoadAnimations(const aiScene* scene, ModelData& outModel)
@@ -626,7 +650,8 @@ bool ModelLoader::LoadMesh(const aiMesh* mesh, unsigned int materialIndex, Skele
     if (!LoadBones(mesh, outMesh, skeleton))
         return false;
 
-    LoadIndices(mesh, outMesh);
+    if (!LoadIndices(mesh, outMesh))
+        return false;
 
     return true;
 }

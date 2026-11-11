@@ -50,9 +50,9 @@ class ModelLoader
 		static bool LoadMesh(const aiMesh* mesh, unsigned int materialIndex, SkeletonData& skeleton, MeshData& outMesh);
 		static bool LoadMaterials(const aiScene* scene, ModelData& outModel, const std::filesystem::path& parentPath);
 		static int LoadMeshes(const aiScene* scene, ModelData& outModel);
-		static void LoadVertices(const aiMesh* mesh, MeshData& meshData);
+		static bool LoadVertices(const aiMesh* mesh, MeshData& meshData);
 		static bool LoadBones(const aiMesh* mesh, MeshData& meshData, SkeletonData& skeleton);
-		static void LoadIndices(const aiMesh* mesh,	MeshData& meshData);
+		static bool LoadIndices(const aiMesh* mesh, MeshData& meshData);
 		static bool LoadAnimations(const aiScene* scene, ModelData& outModel);
 		static bool LoadNodes(const aiNode* node, NodeHierarchyData& hierarchy, int parentIndex);
 };
