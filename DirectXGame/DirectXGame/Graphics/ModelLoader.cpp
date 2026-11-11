@@ -41,7 +41,10 @@ LoadResult ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel
         return { false, LoadError::InvalidScene, "Failed to load node hierarchy." };
 
     ResolveBoneNodes(outModel.skeleton, outModel.nodeHierarchy);
-    ResolveBindPose(scene, outModel.skeleton, outModel.nodeHierarchy);
+
+    if (!ResolveBindPose(scene, outModel.skeleton, outModel.nodeHierarchy))
+        return { false, LoadError::InvalidScene, "Failed to resolve bind pose." };
+
     LoadAnimations(scene, outModel);
 
     return lr;
@@ -249,7 +252,7 @@ void ModelLoader::CollectBoneBindGlobals(const aiScene* scene, const SkeletonDat
     }
 }
 
-void ModelLoader::ApplyBindLocalTransforms(NodeHierarchyData& hierarchy, const std::vector<DirectX::XMFLOAT4X4>& globals)
+bool ModelLoader::ApplyBindLocalTransforms(NodeHierarchyData& hierarchy, const std::vector<DirectX::XMFLOAT4X4>& globals)
 {
     for (size_t i = 0; i < hierarchy.nodes.size(); ++i)
     {
@@ -266,30 +269,33 @@ void ModelLoader::ApplyBindLocalTransforms(NodeHierarchyData& hierarchy, const s
 
             if (std::fabs(DirectX::XMVectorGetX(determinant)) < 1e-8f)
             {
-                Logger::Warning("ResolveBindPose",
-                    "Parent bind transform is not invertible");
-                continue;
+                Logger::Warning("ResolveBindPose", "Parent bind transform is not invertible");
+                return false;
             }
             local = global * inverseParent;
         }
         DirectX::XMStoreFloat4x4(&node.bindLocalTransform, local);
         node.hasBindPose = true;
     }
+    return true;
 }
 
-void ModelLoader::ResolveBindPose(const aiScene* scene, const SkeletonData& skeleton, NodeHierarchyData& hierarchy)
+bool ModelLoader::ResolveBindPose(const aiScene* scene, const SkeletonData& skeleton, NodeHierarchyData& hierarchy)
 {
     if (scene == nullptr || scene->mRootNode == nullptr)
-        return;
+        return false;
 
     std::vector<DirectX::XMFLOAT4X4> bindGlobals;
 
     if (!BuildDefaultNodeGlobals(hierarchy, bindGlobals))
-        return;
+        return false;
 
     CollectBoneBindGlobals(scene, skeleton, bindGlobals);
-    ApplyBindLocalTransforms(hierarchy, bindGlobals);
+    if (!ApplyBindLocalTransforms(hierarchy, bindGlobals))
+        return false;
+
     Logger::Info("ResolveBindPose", "Bind local transforms resolved");
+    return true;
 }
 
 bool ModelLoader::FillMissingPRS(AnimationChannel& channel, const NodeHierarchyData& hierarchy)

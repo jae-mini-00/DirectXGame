@@ -40,12 +40,12 @@ class ModelLoader
 		static bool FillMissingPRS(AnimationChannel& channel, const NodeHierarchyData& hierarchy);
 		static bool BuildDefaultNodeGlobals(const NodeHierarchyData& hierarchy, std::vector<DirectX::XMFLOAT4X4>& globals);
 		static void CollectBoneBindGlobals(const aiScene* scene, const SkeletonData& skeleton, std::vector<DirectX::XMFLOAT4X4>& globals);
-		static void ApplyBindLocalTransforms(NodeHierarchyData& hierarchy, const std::vector<DirectX::XMFLOAT4X4>& globals);
+		static bool ApplyBindLocalTransforms(NodeHierarchyData& hierarchy, const std::vector<DirectX::XMFLOAT4X4>& globals);
 		static aiMatrix4x4 CalculateNodeGlobalTransform(const aiNode* startNode);
 		static aiNode* FindMeshOwnerNode(aiNode* node, unsigned int meshIndex);
 		static DirectX::XMFLOAT4X4 ConvertMatrix(const aiMatrix4x4& matrix);
 		static void ResolveBoneNodes(SkeletonData& skeleton, const NodeHierarchyData& hierarchy);
-		static void ResolveBindPose(const aiScene* scene, const SkeletonData& skeleton, NodeHierarchyData& hierarchy);
+		static bool ResolveBindPose(const aiScene* scene, const SkeletonData& skeleton, NodeHierarchyData& hierarchy);
 
 		static MeshData LoadMesh(const aiMesh* mesh, unsigned int materialIndex, SkeletonData& skeleton);
 		static void LoadMaterials(const aiScene* scene, ModelData& outModel,
