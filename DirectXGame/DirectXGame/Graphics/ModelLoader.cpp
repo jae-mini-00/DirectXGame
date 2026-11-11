@@ -33,7 +33,8 @@ LoadResult ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel
     outModel.nodeHierarchy.nameToIndex.clear();
     outModel.meshIndexs.clear();
 
-    LoadMaterials(scene, outModel, parent_path);
+    if (!LoadMaterials(scene, outModel, parent_path))
+        return { false, LoadError::InvalidScene, "Failed to load materials." };
 
     int meshCount = LoadMeshes(scene, outModel);
 
@@ -52,7 +53,8 @@ LoadResult ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel
     if (!ResolveBindPose(scene, outModel.skeleton, outModel.nodeHierarchy))
         return { false, LoadError::InvalidScene, "Failed to resolve bind pose." };
 
-    LoadAnimations(scene, outModel);
+    if (!LoadAnimations(scene, outModel))
+        return { false, LoadError::InvalidScene, "Failed to load animations." };
 
     return lr;
 }
@@ -466,14 +468,8 @@ void ModelLoader::LoadIndices(const aiMesh* mesh, MeshData& meshData)
     }
 }
 
-void ModelLoader::LoadAnimations(const aiScene* scene, ModelData& outModel)
+bool ModelLoader::LoadAnimations(const aiScene* scene, ModelData& outModel)
 {
-    // TODO: scene->mAnimations[i]가 nullptr인지 검사하고,
-    // 유효하지 않은 Animation은 건너뛰거나 로딩 실패로 처리한다.
-
-    // TODO: animation->mChannels[j]가 nullptr인지 검사하고,
-    // 유효하지 않은 Channel을 처리한다.
-
     // TODO: AnimationChannel과 AnimationClip을 vector에 추가할 때
     // 불필요한 데이터 복사를 줄이도록 std::move 적용을 검토한다.
 
@@ -483,6 +479,11 @@ void ModelLoader::LoadAnimations(const aiScene* scene, ModelData& outModel)
     {
         AnimationClip clip = {};
         const aiAnimation* animation = scene->mAnimations[i];
+        if (animation == nullptr)
+        {
+            Logger::Error("ModelLoader", "Animation pointer is null");
+            return false;
+        }
 
         clip.name = animation->mName.C_Str();
         clip.duration = animation->mDuration;
@@ -492,6 +493,11 @@ void ModelLoader::LoadAnimations(const aiScene* scene, ModelData& outModel)
         {
             AnimationChannel channel = {};
             const aiNodeAnim* node = animation->mChannels[j];
+            if (node == nullptr)
+            {
+                Logger::Error("ModelLoader", "Animation channel pointer is null");
+                return false;
+            }
 
             channel.name = node->mNodeName.C_Str();
 
@@ -531,12 +537,15 @@ void ModelLoader::LoadAnimations(const aiScene* scene, ModelData& outModel)
             if (!FillMissingPRS(channel, outModel.nodeHierarchy))
             {
                 Logger::Warning("ModelLoader", "Invalid animation channel");
-                continue;
+                
+                return false;
             }
             clip.channels.push_back(channel);
         }
         outModel.animationClips.push_back(clip);
     }
+
+    return true;
 }
 
 bool ModelLoader::LoadNodes(const aiNode* node, NodeHierarchyData& hierarchy, int parentIndex)
@@ -622,12 +631,17 @@ bool ModelLoader::LoadMesh(const aiMesh* mesh, unsigned int materialIndex, Skele
     return true;
 }
 
-void ModelLoader::LoadMaterials(const aiScene* scene, ModelData& outModel
-    , const std::filesystem::path& parentPath)
+bool ModelLoader::LoadMaterials(const aiScene* scene, ModelData& outModel, const std::filesystem::path& parentPath)
 {
     for (unsigned int i = 0; i < scene->mNumMaterials; ++i)
     {
         const aiMaterial* material = scene->mMaterials[i];
+        if (material == nullptr)
+        {
+            Logger::Error("ModelLoader", "Material pointer is null");
+            return false;
+        }
+
         MaterialData materialData;
         aiColor4D color;
 
@@ -649,9 +663,10 @@ void ModelLoader::LoadMaterials(const aiScene* scene, ModelData& outModel
             std::string msg = parentPath.string() + " Diffuse Texture not found";
             Logger::Info("ModelLoader", msg.c_str());
         }
-
         outModel.materials.push_back(materialData);
     }
     MaterialData defaultMaterial;
     outModel.materials.push_back(defaultMaterial);
+
+    return true;
 }

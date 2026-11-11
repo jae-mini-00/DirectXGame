@@ -48,12 +48,11 @@ class ModelLoader
 		static bool ResolveBindPose(const aiScene* scene, const SkeletonData& skeleton, NodeHierarchyData& hierarchy);
 
 		static bool LoadMesh(const aiMesh* mesh, unsigned int materialIndex, SkeletonData& skeleton, MeshData& outMesh);
-		static void LoadMaterials(const aiScene* scene, ModelData& outModel,
-			const std::filesystem::path& parentPath);
+		static bool LoadMaterials(const aiScene* scene, ModelData& outModel, const std::filesystem::path& parentPath);
 		static int LoadMeshes(const aiScene* scene, ModelData& outModel);
 		static void LoadVertices(const aiMesh* mesh, MeshData& meshData);
 		static bool LoadBones(const aiMesh* mesh, MeshData& meshData, SkeletonData& skeleton);
 		static void LoadIndices(const aiMesh* mesh,	MeshData& meshData);
-		static void LoadAnimations(const aiScene* scene, ModelData& outModel);
+		static bool LoadAnimations(const aiScene* scene, ModelData& outModel);
 		static bool LoadNodes(const aiNode* node, NodeHierarchyData& hierarchy, int parentIndex);
 };
