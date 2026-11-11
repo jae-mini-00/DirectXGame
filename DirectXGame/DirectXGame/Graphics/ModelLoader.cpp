@@ -3,6 +3,7 @@
 #include "Graphics/Animator.h"
 
 #include <cmath>
+#include <algorithm>
 #include <DirectXMath.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
@@ -47,6 +48,9 @@ LoadResult ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel
     if (!LoadNodes(scene->mRootNode, outModel.nodeHierarchy, -1))
         return { false, LoadError::InvalidScene, "Failed to load node hierarchy." };
 
+    if (!ValidateNodeMeshReferences(scene, outModel))
+        return { false, LoadError::InvalidScene, "Failed to validate node mesh references." };
+
     if (!ResolveBoneNodes(outModel.skeleton, outModel.nodeHierarchy))
         return { false, LoadError::InvalidScene, "Failed to resolve bone nodes." };
 
@@ -57,6 +61,33 @@ LoadResult ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel
         return { false, LoadError::InvalidScene, "Failed to load animations." };
 
     return lr;
+}
+
+bool ModelLoader::ValidateNodeMeshReferences(const aiScene* scene, const ModelData& model)
+{
+    for (const NodeData& node : model.nodeHierarchy.nodes)
+    {
+        for (unsigned int meshIndex : node.meshIndexs)
+        {
+            if (meshIndex >= scene->mNumMeshes)
+            {
+                std::string msg = "Node mesh index out of range: " + node.name;
+                Logger::Error("ModelLoader", msg.c_str());
+                return false;
+            }
+
+            if (std::find(model.meshIndexs.begin(),
+                model.meshIndexs.end(),
+                meshIndex) == model.meshIndexs.end())
+            {
+                std::string msg = "Node references unloaded mesh: " + node.name;
+                Logger::Error("ModelLoader", msg.c_str());
+                return false;
+            }
+        }
+    }
+
+    return true;
 }
 
 bool ModelLoader::AddBoneInfluence(Vertex& vertex, int boneIndex, float weight)
@@ -177,7 +208,6 @@ aiMatrix4x4 ModelLoader::CalculateNodeGlobalTransform(const aiNode* startNode)
     return transform;
 }
 
-
 bool ModelLoader::BuildDefaultNodeGlobals(const NodeHierarchyData& hierarchy, std::vector<DirectX::XMFLOAT4X4>& globals)
 {
     globals.resize(hierarchy.nodes.size());
@@ -204,7 +234,6 @@ bool ModelLoader::BuildDefaultNodeGlobals(const NodeHierarchyData& hierarchy, st
 
     return true;
 }
-
 
 void ModelLoader::CollectBoneBindGlobals(const aiScene* scene, const SkeletonData& skeleton, std::vector<DirectX::XMFLOAT4X4>& globals)
 {
@@ -361,7 +390,6 @@ bool ModelLoader::AreMatricesEqual(const DirectX::XMFLOAT4X4& a, const DirectX::
     }
     return true;
 }
-
 
 void ModelLoader::LoadVertices(const aiMesh* mesh, MeshData& meshData)
 {

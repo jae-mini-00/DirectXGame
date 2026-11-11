@@ -34,7 +34,7 @@ class ModelLoader
 		static LoadResult Load(std::filesystem::path filePath, ModelData& outModel);
 
 	private:
-		
+		static bool ValidateNodeMeshReferences(const aiScene* scene, const ModelData& model);
 		static bool AddBoneInfluence(Vertex& vertex, int boneIndex, float weight);
 		static bool AreMatricesEqual(const DirectX::XMFLOAT4X4& a, const DirectX::XMFLOAT4X4& b);
 		static bool FillMissingPRS(AnimationChannel& channel, const NodeHierarchyData& hierarchy);
