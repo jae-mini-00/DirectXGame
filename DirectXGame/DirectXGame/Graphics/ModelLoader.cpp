@@ -11,19 +11,24 @@
 
 LoadResult ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel)
 {
-    LoadResult lr = {true, LoadError::None, ""};
     Assimp::Importer importer;
     std::filesystem::path parent_path = filePath.parent_path();
+    const std::string modelPath = filePath.string();
 
-    const aiScene* scene = importer.ReadFile(filePath.string(), 
-        aiProcess_Triangulate | aiProcess_GenSmoothNormals 
+    auto fail = [&](LoadError error, const std::string& reason) -> LoadResult
+        {
+            return { false, error, modelPath + " | " + reason };
+        };
+
+    const aiScene* scene = importer.ReadFile(modelPath,
+        aiProcess_Triangulate | aiProcess_GenSmoothNormals
         | aiProcess_PopulateArmatureData | aiProcess_ConvertToLeftHanded);
 
     if (scene == nullptr)
-        return { false, LoadError::FileReadFailed, importer.GetErrorString() };
-    
+        return fail(LoadError::FileReadFailed, importer.GetErrorString());
+
     if (scene->mRootNode == nullptr)
-        return { false, LoadError::InvalidScene, "Scene root node is null." };
+        return fail(LoadError::InvalidScene, "Scene root node is null.");
 
     outModel.meshes.clear();
     outModel.materials.clear();
@@ -35,32 +40,32 @@ LoadResult ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel
     outModel.meshIndexs.clear();
 
     if (!LoadMaterials(scene, outModel, parent_path))
-        return { false, LoadError::InvalidScene, "Failed to load materials." };
+        return fail(LoadError::InvalidScene, "Failed to load materials.");
 
     int meshCount = LoadMeshes(scene, outModel);
 
     if (meshCount < 0)
-        return { false, LoadError::InvalidScene, "Failed to load mesh data." };
+        return fail(LoadError::InvalidScene, "Failed to load mesh data.");
 
     if (meshCount == 0)
-        return { false, LoadError::NoValidMesh, "Model contains no valid meshes." };
-   
+        return fail(LoadError::NoValidMesh, "Model contains no valid meshes.");
+
     if (!LoadNodes(scene->mRootNode, outModel.nodeHierarchy, -1))
-        return { false, LoadError::InvalidScene, "Failed to load node hierarchy." };
+        return fail(LoadError::InvalidScene, "Failed to load node hierarchy.");
 
     if (!ValidateNodeMeshReferences(scene, outModel))
-        return { false, LoadError::InvalidScene, "Failed to validate node mesh references." };
+        return fail(LoadError::InvalidScene, "Failed to validate node mesh references.");
 
     if (!ResolveBoneNodes(outModel.skeleton, outModel.nodeHierarchy))
-        return { false, LoadError::InvalidScene, "Failed to resolve bone nodes." };
+        return fail(LoadError::InvalidScene, "Failed to resolve bone nodes.");
 
     if (!ResolveBindPose(scene, outModel.skeleton, outModel.nodeHierarchy))
-        return { false, LoadError::InvalidScene, "Failed to resolve bind pose." };
+        return fail(LoadError::InvalidScene, "Failed to resolve bind pose.");
 
     if (!LoadAnimations(scene, outModel))
-        return { false, LoadError::InvalidScene, "Failed to load animations." };
+        return fail(LoadError::InvalidScene, "Failed to load animations.");
 
-    return lr;
+    return { true, LoadError::None, "" };
 }
 
 bool ModelLoader::ValidateNodeMeshReferences(const aiScene* scene, const ModelData& model)
@@ -274,11 +279,7 @@ void ModelLoader::CollectBoneBindGlobals(const aiScene* scene, const SkeletonDat
             size_t index = static_cast<size_t>(nodeIndex);
 
             if (assigned[index])
-            {
-                Logger::Warning("ResolveBindPose",
-                    "Bone shared by multiple meshes; first binding used");
                 continue;
-            }
 
             aiMatrix4x4 inverseOffset = bone->mOffsetMatrix;
 
@@ -309,7 +310,7 @@ bool ModelLoader::ApplyBindLocalTransforms(NodeHierarchyData& hierarchy, const s
 
             if (std::fabs(DirectX::XMVectorGetX(determinant)) < 1e-8f)
             {
-                Logger::Warning("ResolveBindPose", "Parent bind transform is not invertible");
+                Logger::Error("ResolveBindPose", "Parent bind transform is not invertible");
                 return false;
             }
             local = global * inverseParent;
@@ -517,7 +518,10 @@ bool ModelLoader::LoadIndices(const aiMesh* mesh, MeshData& meshData)
         {
             if (face.mIndices[j] >= meshData.vertices.size())
             {
-                Logger::Error("ModelLoader", "Mesh index is out of vertex range");
+                std::string msg = "Mesh index out of range: index=" + std::to_string(face.mIndices[j]) 
+                        + ", vertexCount=" + std::to_string(meshData.vertices.size());
+
+                Logger::Error("ModelLoader", msg.c_str());
                 return false;
             }
 
@@ -612,7 +616,8 @@ bool ModelLoader::LoadAnimations(const aiScene* scene, ModelData& outModel)
             }
             if (!FillMissingPRS(channel, outModel.nodeHierarchy))
             {
-                Logger::Warning("ModelLoader", "Invalid animation channel");
+                std::string msg = "Invalid animation channel: " + clip.name + " / " + channel.name;
+                Logger::Error("ModelLoader", msg.c_str());
                 
                 return false;
             }
@@ -640,7 +645,8 @@ bool ModelLoader::LoadNodes(const aiNode* node, NodeHierarchyData& hierarchy, in
 
     if (hierarchy.nameToIndex.find(nodeData.name) != hierarchy.nameToIndex.end())
     {
-        Logger::Error("ModelLoader", "Duplicate node name");
+        std::string msg = "Duplicate node name: " + nodeData.name;
+        Logger::Error("ModelLoader", msg.c_str());
         return false;
     }
 
@@ -668,12 +674,14 @@ int ModelLoader::LoadMeshes(const aiScene* scene, ModelData& outModel)
         unsigned int resolvedMaterialIndex = DefaultMateriaIndex;
         if (scene->mMeshes[i] == nullptr)
         {
-            Logger::Error("ModelLoader", "Mesh pointer is null. Skipping this mesh.");
+            std::string msg = "Mesh pointer is null at index: " + std::to_string(i);
+            Logger::Error("ModelLoader", msg.c_str());
             continue;
         }
         else if (scene->mMeshes[i]->mNumVertices == 0 || scene->mMeshes[i]->mNumFaces == 0)
         {
-            Logger::Warning("ModelLoader", "Mesh has no vertices or faces. Skipping this mesh.");
+            std::string msg = "Mesh has no vertices or faces at index: " + std::to_string(i);
+            Logger::Warning("ModelLoader", msg.c_str());
             continue;
         }
         else if (scene->mMeshes[i]->mMaterialIndex >= scene->mNumMaterials)
@@ -740,11 +748,6 @@ bool ModelLoader::LoadMaterials(const aiScene* scene, ModelData& outModel, const
 
             if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath) == AI_SUCCESS)
                 materialData.texturePath = (parentPath / texturePath.C_Str()).string();
-        }
-        else
-        {
-            std::string msg = parentPath.string() + " Diffuse Texture not found";
-            Logger::Info("ModelLoader", msg.c_str());
         }
         outModel.materials.push_back(materialData);
     }
