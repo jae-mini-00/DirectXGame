@@ -41,9 +41,6 @@ class Mesh
         UINT indexCount;
         unsigned int materialIndex;
 
-        HRESULT CreateVertexBuffer(ID3D11Device* device,
-            const Vertex* vertices, UINT count);
-
-        HRESULT CreateIndexBuffer(ID3D11Device* device,
-            const unsigned int* indices, UINT count);
+        HRESULT CreateVertexBuffer(ID3D11Device* device, const Vertex* vertices, UINT count);
+        HRESULT CreateIndexBuffer(ID3D11Device* device, const unsigned int* indices, UINT count);
 };

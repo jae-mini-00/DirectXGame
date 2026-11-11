@@ -55,5 +55,5 @@ class ModelLoader
 		static void LoadBones(const aiMesh* mesh, MeshData& meshData, SkeletonData& skeleton);
 		static void LoadIndices(const aiMesh* mesh,	MeshData& meshData);
 		static void LoadAnimations(const aiScene* scene, ModelData& outModel);
-		static void LoadNodes(const aiNode* node, NodeHierarchyData& hierarchy, int parentIndex);
+		static bool LoadNodes(const aiNode* node, NodeHierarchyData& hierarchy, int parentIndex);
 };

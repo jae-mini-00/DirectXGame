@@ -19,13 +19,10 @@ LoadResult ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel
         | aiProcess_PopulateArmatureData | aiProcess_ConvertToLeftHanded);
 
     if (scene == nullptr)
-    {
-        lr.success = false;
-        lr.error = LoadError::FileReadFailed;
-        lr.message = importer.GetErrorString();
-
-        return lr;
-    }
+        return { false, LoadError::FileReadFailed, importer.GetErrorString() };
+    
+    if (scene->mRootNode == nullptr)
+        return { false, LoadError::InvalidScene, "Scene root node is null." };
 
     outModel.meshes.clear();
     outModel.materials.clear();
@@ -38,21 +35,14 @@ LoadResult ModelLoader::Load(std::filesystem::path filePath, ModelData& outModel
 
     LoadMaterials(scene, outModel, parent_path);
     if (LoadMeshes(scene, outModel) <= 0)
-    {
-        lr.success = false;
-        lr.error = LoadError::NoValidMesh;
-        lr.message = "Model contains no valid meshes.";
-    }
-    else
-    {
-        if (scene->mRootNode != nullptr)
-        {
-            LoadNodes(scene->mRootNode, outModel.nodeHierarchy, -1);
-            ResolveBoneNodes(outModel.skeleton, outModel.nodeHierarchy);
-            ResolveBindPose(scene, outModel.skeleton, outModel.nodeHierarchy);
-        }
-        LoadAnimations(scene, outModel);
-    }
+        return { false,  LoadError::NoValidMesh, "Model contains no valid meshes." };
+        
+    if (!LoadNodes(scene->mRootNode, outModel.nodeHierarchy, -1))
+        return { false, LoadError::InvalidScene, "Failed to load node hierarchy." };
+
+    ResolveBoneNodes(outModel.skeleton, outModel.nodeHierarchy);
+    ResolveBindPose(scene, outModel.skeleton, outModel.nodeHierarchy);
+    LoadAnimations(scene, outModel);
 
     return lr;
 }
@@ -502,10 +492,10 @@ void ModelLoader::LoadAnimations(const aiScene* scene, ModelData& outModel)
     }
 }
 
-void ModelLoader::LoadNodes(const aiNode* node, NodeHierarchyData& hierarchy, int parentIndex)
+bool ModelLoader::LoadNodes(const aiNode* node, NodeHierarchyData& hierarchy, int parentIndex)
 {
     if (node == nullptr)
-        return;
+        return false;
 
     NodeData nodeData = {};
 
@@ -519,7 +509,7 @@ void ModelLoader::LoadNodes(const aiNode* node, NodeHierarchyData& hierarchy, in
     if (hierarchy.nameToIndex.find(nodeData.name) != hierarchy.nameToIndex.end())
     {
         Logger::Error("ModelLoader", "Duplicate node name");
-        return;
+        return false;
     }
 
     int nodeIndex = static_cast<int>(hierarchy.nodes.size());
@@ -528,8 +518,12 @@ void ModelLoader::LoadNodes(const aiNode* node, NodeHierarchyData& hierarchy, in
     hierarchy.nodes.push_back(nodeData);
 
     for (unsigned int i = 0; i < node->mNumChildren; ++i)
-        LoadNodes(node->mChildren[i],
-            hierarchy, nodeIndex);
+    {
+        if (!LoadNodes(node->mChildren[i], hierarchy, nodeIndex))
+            return false;
+    }
+
+    return true;
 }
 
 int ModelLoader::LoadMeshes(const aiScene* scene, ModelData& outModel)
