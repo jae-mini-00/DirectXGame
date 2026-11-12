@@ -12,8 +12,8 @@ const std::vector<AnimationClip>& Model::GetAnimationClip() const { return anima
 HRESULT Model::Initialize(ID3D11Device* device,
     ID3D11DeviceContext* context, const ModelData& data)
 {
-    meshes.clear();
-    materials.clear();
+    std::vector<Mesh> newMeshes;
+    std::vector<Material> newMaterials;
 
     for (const MeshData& meshData : data.meshes)
     {
@@ -21,9 +21,12 @@ HRESULT Model::Initialize(ID3D11Device* device,
 
         HRESULT hr = mesh.Initialize(device, meshData);
         if (FAILED(hr))
+        {
+            Logger::Error("Model", "Mesh initialization failed");
             return hr;
+        }
 
-        meshes.push_back(std::move(mesh));
+        newMeshes.push_back(std::move(mesh));
     }
 
     for (const MaterialData& materialData : data.materials)
@@ -34,11 +37,16 @@ HRESULT Model::Initialize(ID3D11Device* device,
             context, materialData);
 
         if (FAILED(hr))
+        {
+            Logger::Error("Model", "Material initialization failed");
             return hr;
+        }
 
-        materials.push_back(std::move(material));
+        newMaterials.push_back(std::move(material));
     }
 
+    meshes = std::move(newMeshes);
+    materials = std::move(newMaterials);
     meshIndexs = data.meshIndexs;
     skeleton = data.skeleton;
     nodeHierarchy = data.nodeHierarchy;
