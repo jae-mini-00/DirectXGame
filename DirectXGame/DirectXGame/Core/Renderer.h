@@ -12,8 +12,6 @@ class GameObject;
 class Material;
 struct Transform;
 
-constexpr unsigned int MAX_BONES = 128;
-
 struct FeatureLevelInfo
 {
     D3D_FEATURE_LEVEL levels[1];
@@ -49,11 +47,6 @@ struct BoneInfoBuffer
 {
     UINT boneCount = 0;
     float padding[3] = {};
-};
-
-struct BoneMatrixBuffer
-{
-    DirectX::XMFLOAT4X4 bones[MAX_BONES];
 };
 
 class Renderer
