@@ -6,6 +6,7 @@
 #include "Core/Logger/Logger.h"
 #include "Core/Paths.h"
 #include "Graphics/Animator.h"
+#include "Core/Input/Input.h"
 
 #include <Windows.h>
 #include <DirectXMath.h>
@@ -15,12 +16,7 @@
 
 Camera* gCamera = nullptr;
 
-LRESULT CALLBACK WindowProc
-(
-    HWND hwnd,
-    UINT msg,
-    WPARAM wParam,
-    LPARAM lParam)
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
@@ -155,6 +151,9 @@ int WINAPI WinMain
     Camera camera(width, height);
     gCamera = &camera;
     auto previousTime = std::chrono::steady_clock::now();
+
+    Input input;
+
     while (msg.message != WM_QUIT)
     {
         if (PeekMessage(&msg, nullptr,
@@ -165,6 +164,22 @@ int WINAPI WinMain
         }
         else
         {
+            input.Update();
+
+            if (input.IsKeyPressed('A'))
+            {
+                Logger::Info("Input", "A Pressed");
+            }
+
+            if (input.IsKeyDown('A'))
+            {
+                // A 키를 누르고 있는 동안
+            }
+
+            if (input.IsKeyReleased('A'))
+            {
+                Logger::Info("Input", "A Released");
+            }
             auto currentTime = std::chrono::steady_clock::now();
 
             double deltaTime =
@@ -173,7 +188,6 @@ int WINAPI WinMain
             previousTime = currentTime;
 
             SceneUpdate(scene, deltaTime);
-            //SceneUpdate(scene, 0.0);
             renderer.BeginFrame();
             renderer.Draw(scene, camera);
             renderer.EndFrame();

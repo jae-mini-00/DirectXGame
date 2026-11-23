@@ -40,6 +40,12 @@
     <Filter Include="소스 파일\Core\Logger">
       <UniqueIdentifier>{9a0fcbab-366b-4f2e-857e-e9b0f05f9043}</UniqueIdentifier>
     </Filter>
+    <Filter Include="헤더 파일\Core\Input">
+      <UniqueIdentifier>{1936d540-60ac-4d44-92a7-597aa44c50bb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Core\Input">
+      <UniqueIdentifier>{8f965b5d-a140-4b8c-90b1-2b6b975b2e8e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -74,6 +80,9 @@
     </ClCompile>
     <ClCompile Include="Graphics\BonePaletteBuffer.cpp">
       <Filter>소스 파일\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Input\Input.cpp">
+      <Filter>소스 파일\Core\Input</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -127,6 +136,9 @@
     </ClInclude>
     <ClInclude Include="Graphics\BonePaletteBuffer.h">
       <Filter>헤더 파일\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Input\Input.h">
+      <Filter>헤더 파일\Core\Input</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
