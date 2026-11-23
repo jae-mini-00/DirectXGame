@@ -7,6 +7,7 @@
 #include "Core/Paths.h"
 #include "Graphics/Animator.h"
 #include "Core/Input/Input.h"
+#include "Scene/Movement.h"
 
 #include <Windows.h>
 #include <DirectXMath.h>
@@ -153,6 +154,7 @@ int WINAPI WinMain
     auto previousTime = std::chrono::steady_clock::now();
 
     Input input;
+    Movement move;
 
     while (msg.message != WM_QUIT)
     {
@@ -165,21 +167,7 @@ int WINAPI WinMain
         else
         {
             input.Update();
-
-            if (input.IsKeyPressed('A'))
-            {
-                Logger::Info("Input", "A Pressed");
-            }
-
-            if (input.IsKeyDown('A'))
-            {
-                // A 키를 누르고 있는 동안
-            }
-
-            if (input.IsKeyReleased('A'))
-            {
-                Logger::Info("Input", "A Released");
-            }
+            DirectX::XMFLOAT3 direction = { 0, 0, 0 };
             auto currentTime = std::chrono::steady_clock::now();
 
             double deltaTime =
@@ -187,6 +175,23 @@ int WINAPI WinMain
 
             previousTime = currentTime;
 
+            if (input.IsKeyDown('A'))
+            {
+                direction.x -= 1;
+            }
+            if (input.IsKeyDown('D'))
+            {
+                direction.x += 1;
+            }
+            if (input.IsKeyDown('S'))
+            {
+                direction.z -= 1;
+            }
+            if (input.IsKeyDown('W'))
+            {
+                direction.z += 1;
+            }
+            move.Move(scene[0]->transform, direction, deltaTime);
             SceneUpdate(scene, deltaTime);
             renderer.BeginFrame();
             renderer.Draw(scene, camera);

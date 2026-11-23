@@ -141,6 +141,7 @@
     <ClCompile Include="Graphics\Model.cpp" />
     <ClCompile Include="Graphics\ModelLoader.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Scene\Movement.cpp" />
     <ClCompile Include="Scene\Scene.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -169,6 +170,7 @@
     <ClInclude Include="Graphics\NodeData.h" />
     <ClInclude Include="Graphics\SkeletonData.h" />
     <ClInclude Include="Scene\GameObject.h" />
+    <ClInclude Include="Scene\Movement.h" />
     <ClInclude Include="Scene\Scene.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

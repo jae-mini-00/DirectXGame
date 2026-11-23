@@ -84,6 +84,9 @@
     <ClCompile Include="Core\Input\Input.cpp">
       <Filter>소스 파일\Core\Input</Filter>
     </ClCompile>
+    <ClCompile Include="Scene\Movement.cpp">
+      <Filter>소스 파일\Scene</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Graphics\AnimationClip.h">
@@ -139,6 +142,9 @@
     </ClInclude>
     <ClInclude Include="Core\Input\Input.h">
       <Filter>헤더 파일\Core\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Movement.h">
+      <Filter>헤더 파일\Scene</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
