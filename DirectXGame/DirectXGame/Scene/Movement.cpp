@@ -1,5 +1,16 @@
 #include "Scene/Movement.h"
 #include "Scene/GameObject.h"
+#include <cmath>
+
+float Movement::GetSpeed() const { return speed; }
+
+void Movement::SetSpeed(float speed) 
+{
+	if (speed < 0.0f || !std::isfinite(speed))
+		return;
+
+	this->speed = speed;
+}
 
 void Movement::Move(Transform& transform, const DirectX::XMFLOAT3 direction, float deltaTime) const
 {

@@ -154,7 +154,6 @@ int WINAPI WinMain
     auto previousTime = std::chrono::steady_clock::now();
 
     Input input;
-    Movement move;
 
     while (msg.message != WM_QUIT)
     {
@@ -191,7 +190,7 @@ int WINAPI WinMain
             {
                 direction.z += 1;
             }
-            move.Move(scene[0]->transform, direction, deltaTime);
+            scene[0]->movement.Move(scene[0]->transform, direction, static_cast<float>(deltaTime));
             SceneUpdate(scene, deltaTime);
             renderer.BeginFrame();
             renderer.Draw(scene, camera);

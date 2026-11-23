@@ -3,6 +3,7 @@
 #include <DirectXMath.h>
 #include "Graphics/Model.h"
 #include "Graphics/Animator.h"
+#include "Scene/Movement.h"
 
 struct Transform
 {
@@ -17,4 +18,5 @@ class GameObject
         Transform transform;
         Model model;
         Animator animator;
+        Movement movement;
 };
