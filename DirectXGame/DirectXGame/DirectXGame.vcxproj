@@ -136,6 +136,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="Graphics\BonePaletteBuffer.cpp" />
+    <ClCompile Include="Graphics\DebugRenderer.cpp" />
     <ClCompile Include="Graphics\Material.cpp" />
     <ClCompile Include="Graphics\Mesh.cpp" />
     <ClCompile Include="Graphics\Model.cpp" />
@@ -163,6 +164,7 @@
     <ClInclude Include="Graphics\AnimationClip.h" />
     <ClInclude Include="Graphics\Animator.h" />
     <ClInclude Include="Graphics\BonePaletteBuffer.h" />
+    <ClInclude Include="Graphics\DebugRenderer.h" />
     <ClInclude Include="Graphics\Material.h" />
     <ClInclude Include="Graphics\Mesh.h" />
     <ClInclude Include="Graphics\Model.h" />

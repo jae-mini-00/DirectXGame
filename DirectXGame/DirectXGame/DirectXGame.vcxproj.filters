@@ -96,6 +96,9 @@
     <ClCompile Include="Physics\Collision.cpp">
       <Filter>소스 파일\Phsics</Filter>
     </ClCompile>
+    <ClCompile Include="Graphics\DebugRenderer.cpp">
+      <Filter>소스 파일\Graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Graphics\AnimationClip.h">
@@ -160,6 +163,9 @@
     </ClInclude>
     <ClInclude Include="Physics\Collision.h">
       <Filter>헤더 파일\Phsics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\DebugRenderer.h">
+      <Filter>헤더 파일\Graphics</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

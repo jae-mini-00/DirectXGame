@@ -9,6 +9,7 @@
 #include "Core/Input/Input.h"
 #include "Scene/Movement.h"
 #include "Physics/Collision.h"
+#include "Graphics/DebugRenderer.h"
 
 #include <Windows.h>
 #include <DirectXMath.h>
@@ -119,10 +120,20 @@ int WINAPI WinMain
 
     if (FAILED(hr))
     {
-        MessageBox( hwnd, L"Renderer Initialize Failed",
-            L"Error", MB_OK);
+        MessageBox(hwnd, L"Renderer Initialize Failed", L"Error", MB_OK);
         return 0;
     }
+
+    DebugRenderer debugRenderer;
+    hr = debugRenderer.Initialize(renderer.GetDevice(), renderer.GetContext());
+
+    if (FAILED(hr))
+    {
+        MessageBox(hwnd, L"DebugRenderer Initialize Failed", L"Error", MB_OK);
+        return 0;
+    }
+
+    bool showColliderDebug = false;
 
     ShowWindow(hwnd, nCmdShow);
 
@@ -151,6 +162,13 @@ int WINAPI WinMain
         MessageBox(hwnd, L"Player Add Failed", L"Error", MB_OK);
         return 0;
     }
+    // 캐릭터
+    scene[0]->collider.center = { 0.0f, 0.9f, 0.0f };
+    scene[0]->collider.halfExtents = { 0.3f, 0.9f, 0.3f };
+
+    // 드럼통
+    scene[1]->collider.center = { 0.0f, 0.6f, 0.0f };
+    scene[1]->collider.halfExtents = { 0.6f, 0.6f, 0.6f };
 
     RECT rect;
     GetClientRect(hwnd, &rect);
@@ -174,6 +192,10 @@ int WINAPI WinMain
         else
         {
             input.Update();
+
+            if (input.IsKeyPressed(VK_F1))
+                showColliderDebug = !showColliderDebug;
+
             DirectX::XMFLOAT3 direction = { 0, 0, 0 };
             auto currentTime = std::chrono::steady_clock::now();
 
@@ -207,6 +229,10 @@ int WINAPI WinMain
             SceneUpdate(scene, deltaTime);
             renderer.BeginFrame();
             renderer.Draw(scene, camera);
+
+            if (showColliderDebug)
+                debugRenderer.DrawColliders(scene, camera);
+
             renderer.EndFrame();
         }
     }
