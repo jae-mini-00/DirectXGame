@@ -4,6 +4,7 @@
 #include "Graphics/Model.h"
 #include "Graphics/Animator.h"
 #include "Scene/Movement.h"
+#include "Physics/Collision.h"
 
 struct Transform
 {
@@ -19,4 +20,5 @@ class GameObject
         Model model;
         Animator animator;
         Movement movement;
+        AABBCollider collider;
 };

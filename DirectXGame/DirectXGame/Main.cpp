@@ -144,6 +144,13 @@ int WINAPI WinMain
         MessageBox(hwnd, L"Player Add Failed", L"Error", MB_OK);
         return 0;
     }
+    scale = { 1.0f, 1.0f, 1.0f };
+    hr = AddModelToScene(renderer, scene, Paths::BarrelModel, position, scale, rotation);
+    if (FAILED(hr))
+    {
+        MessageBox(hwnd, L"Player Add Failed", L"Error", MB_OK);
+        return 0;
+    }
 
     RECT rect;
     GetClientRect(hwnd, &rect);
@@ -192,6 +199,11 @@ int WINAPI WinMain
                 direction.z += 1;
             }
             scene[0]->movement.Move(scene[0]->transform, direction, static_cast<float>(deltaTime));
+            bool isColliding = Collision::IntersectsAABB(
+                scene[0]->collider, scene[0]->transform.position,
+                scene[1]->collider, scene[1]->transform.position
+            );
+            OutputDebugStringA(isColliding ? "Collision: TRUE\n" : "Collision: FALSE\n");
             SceneUpdate(scene, deltaTime);
             renderer.BeginFrame();
             renderer.Draw(scene, camera);
