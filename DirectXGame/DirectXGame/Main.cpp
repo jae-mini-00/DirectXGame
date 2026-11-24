@@ -8,6 +8,7 @@
 #include "Graphics/Animator.h"
 #include "Core/Input/Input.h"
 #include "Scene/Movement.h"
+#include "Physics/Collision.h"
 
 #include <Windows.h>
 #include <DirectXMath.h>

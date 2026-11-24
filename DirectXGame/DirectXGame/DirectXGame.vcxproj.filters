@@ -46,6 +46,12 @@
     <Filter Include="소스 파일\Core\Input">
       <UniqueIdentifier>{8f965b5d-a140-4b8c-90b1-2b6b975b2e8e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="헤더 파일\Phsics">
+      <UniqueIdentifier>{0a128f9a-21ce-483d-9432-0ad7e827b377}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Phsics">
+      <UniqueIdentifier>{1b40706c-50cf-45bb-9774-352c7b1e9e51}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -86,6 +92,9 @@
     </ClCompile>
     <ClCompile Include="Scene\Movement.cpp">
       <Filter>소스 파일\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Physics\Collision.cpp">
+      <Filter>소스 파일\Phsics</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -145,6 +154,12 @@
     </ClInclude>
     <ClInclude Include="Scene\Movement.h">
       <Filter>헤더 파일\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics\Collider.h">
+      <Filter>헤더 파일\Phsics</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics\Collision.h">
+      <Filter>헤더 파일\Phsics</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

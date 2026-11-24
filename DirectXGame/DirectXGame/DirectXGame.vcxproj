@@ -141,6 +141,7 @@
     <ClCompile Include="Graphics\Model.cpp" />
     <ClCompile Include="Graphics\ModelLoader.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Physics\Collision.cpp" />
     <ClCompile Include="Scene\Movement.cpp" />
     <ClCompile Include="Scene\Scene.cpp" />
   </ItemGroup>
@@ -169,6 +170,8 @@
     <ClInclude Include="Graphics\ModelLoadResult.h" />
     <ClInclude Include="Graphics\NodeData.h" />
     <ClInclude Include="Graphics\SkeletonData.h" />
+    <ClInclude Include="Physics\Collider.h" />
+    <ClInclude Include="Physics\Collision.h" />
     <ClInclude Include="Scene\GameObject.h" />
     <ClInclude Include="Scene\Movement.h" />
     <ClInclude Include="Scene\Scene.h" />
