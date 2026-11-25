@@ -93,6 +93,73 @@ WorldSphere Collision::ToWorldSphere(const SphereCollider& collider, const Direc
     return worldSphere;
 }
 
+bool Collision::IntersectsCapsuleCapsule(const WorldCapsule& a, const WorldCapsule& b)
+{
+    float dAx = a.pointB.x - a.pointA.x;
+    float dBx = b.pointB.x - b.pointA.x;
+    float rx = a.pointA.x - b.pointA.x;
+    float dAy = a.pointB.y - a.pointA.y;
+    float dBy = b.pointB.y - b.pointA.y;
+    float ry = a.pointA.y - b.pointA.y;
+    float dAz = a.pointB.z - a.pointA.z;
+    float dBz = b.pointB.z - b.pointA.z;
+    float rz = a.pointA.z - b.pointA.z;
+    float lengthSquaredA = dAx * dAx + dAy * dAy + dAz * dAz;
+    float lengthSquaredB = dBx * dBx + dBy * dBy + dBz * dBz;
+    float dotAB = dAx * dBx + dAy * dBy + dAz * dBz;
+    float dotAR = dAx * rx + dAy * ry + dAz * rz;
+    float dotBR = dBx * rx + dBy * ry + dBz * rz;
+    float s = 0.0f;
+    float t = 0.0f;
+
+    constexpr float EPSILON = 1e-6f;
+
+    if (lengthSquaredA <= EPSILON && lengthSquaredB <= EPSILON)
+    {
+        s = 0.0f;
+        t = 0.0f;
+    }
+    else if (lengthSquaredA <= EPSILON)
+    {
+        s = 0.0f;
+        t = std::clamp(dotBR / lengthSquaredB, 0.0f, 1.0f);
+    }
+    else if (lengthSquaredB <= EPSILON)
+    {
+        t = 0.0f;
+        s = std::clamp(-dotAR / lengthSquaredA, 0.0f, 1.0f);
+    }
+    else
+    {
+        float denominator = lengthSquaredA * lengthSquaredB - dotAB * dotAB;
+
+        if (denominator > EPSILON * lengthSquaredA * lengthSquaredB)
+            s = std::clamp((dotAB * dotBR - dotAR * lengthSquaredB) / denominator, 0.0f, 1.0f);
+        else
+            s = 0.0f;
+
+        t = (dotAB * s + dotBR) / lengthSquaredB;
+
+        if (t < 0.0f)
+        {
+            t = 0.0f;
+            s = std::clamp(-dotAR / lengthSquaredA, 0.0f, 1.0f);
+        }
+        else if (t > 1.0f)
+        {
+            t = 1.0f;
+            s = std::clamp((dotAB - dotAR) / lengthSquaredA, 0.0f, 1.0f);
+        }
+    }
+    float dx = rx + dAx * s - dBx * t;
+    float dy = ry + dAy * s - dBy * t;
+    float dz = rz + dAz * s - dBz * t;
+    float distanceSquared = dx * dx + dy * dy + dz * dz;
+    float radiusSum = a.radius + b.radius;
+
+    return distanceSquared <= radiusSum * radiusSum;
+}
+
 WorldCapsule Collision::ToWorldCapsule(const CapsuleCollider& collider, const DirectX::XMFLOAT3& position,
     const DirectX::XMFLOAT3& scale)
 {
