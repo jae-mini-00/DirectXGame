@@ -4,15 +4,9 @@
 
 bool Collision::IntersectsAABBSphere(const WorldAABB& box, const WorldSphere& sphere)
 {
-    float min = box.center.x - box.halfExtents.x;
-    float max = box.center.x + box.halfExtents.x;
-    float closestX = std::clamp(sphere.center.x, min, max);
-    min = box.center.y - box.halfExtents.y;
-    max = box.center.y + box.halfExtents.y;
-    float closestY = std::clamp(sphere.center.y, min, max);
-    min = box.center.z - box.halfExtents.z;
-    max = box.center.z + box.halfExtents.z;
-    float closestZ = std::clamp(sphere.center.z, min, max);
+    float closestX = std::clamp(sphere.center.x, box.center.x - box.halfExtents.x, box.center.x + box.halfExtents.x);
+    float closestY = std::clamp(sphere.center.y, box.center.y - box.halfExtents.y, box.center.y + box.halfExtents.y);
+    float closestZ = std::clamp(sphere.center.z, box.center.z - box.halfExtents.z, box.center.z + box.halfExtents.z);
     float dx = sphere.center.x - closestX;
     float dy = sphere.center.y - closestY;
     float dz = sphere.center.z - closestZ;
@@ -41,6 +35,109 @@ bool Collision::IntersectsCapsuleSphere(const WorldCapsule& capsule, const World
     float distanceSquared = distanceX * distanceX + distanceY * distanceY + distanceZ * distanceZ;
 
     return  distanceSquared <= (capsule.radius + sphere.radius) * (capsule.radius + sphere.radius);
+}
+
+bool Collision::IntersectsAABBCapsule(const WorldAABB& box, const WorldCapsule& capsule)
+{
+    const float start[3] = {capsule.pointA.x, capsule.pointA.y, capsule.pointA.z};
+    const float direction[3] = {capsule.pointB.x - capsule.pointA.x, capsule.pointB.y - capsule.pointA.y,
+        capsule.pointB.z - capsule.pointA.z};
+    const float boxMin[3] = {box.center.x - box.halfExtents.x, box.center.y - box.halfExtents.y,
+        box.center.z - box.halfExtents.z};
+    const float boxMax[3] = {box.center.x + box.halfExtents.x, box.center.y + box.halfExtents.y,
+        box.center.z + box.halfExtents.z};
+    float tValues[8] = { 0.0f, 1.0f };
+    int tCount = 2;
+
+    for (int axis = 0; axis < 3; ++axis)
+    {
+        if (direction[axis] == 0.0f)
+            continue;
+
+        float tMin = (boxMin[axis] - start[axis]) / direction[axis];
+        float tMax = (boxMax[axis] - start[axis]) / direction[axis];
+
+        if (tMin > 0.0f && tMin < 1.0f)
+            tValues[tCount++] = tMin;
+
+        if (tMax > 0.0f && tMax < 1.0f)
+            tValues[tCount++] = tMax;
+    }
+    std::sort(tValues, tValues + tCount);
+
+    float minDistanceSquared = 0.0f;
+
+    for (int axis = 0; axis < 3; ++axis)
+    {
+        float closest = std::clamp(start[axis], boxMin[axis], boxMax[axis]);
+        float delta = start[axis] - closest;
+        minDistanceSquared += delta * delta;
+    }
+    for (int i = 1; i < tCount; ++i)
+    {
+        float t = tValues[i];
+        float distanceSquared = 0.0f;
+
+        for (int axis = 0; axis < 3; ++axis)
+        {
+            float point = start[axis] + direction[axis] * t;
+            float closest = std::clamp(point, boxMin[axis], boxMax[axis]);
+            float delta = point - closest;
+
+            distanceSquared += delta * delta;
+        }
+        minDistanceSquared = std::min(minDistanceSquared, distanceSquared);
+    }
+    for (int i = 0; i < tCount - 1; ++i)
+    {
+        float lower = tValues[i];
+        float upper = tValues[i + 1];
+
+        if (upper <= lower)
+            continue;
+
+        float middle = (lower + upper) * 0.5f;
+        float A = 0.0f;
+        float B = 0.0f;
+
+        for (int axis = 0; axis < 3; ++axis)
+        {
+            float point = start[axis] + direction[axis] * middle;
+
+            if (point < boxMin[axis])
+            {
+                A += direction[axis] * direction[axis];
+                B += direction[axis] * (start[axis] - boxMin[axis]);
+            }
+            else if (point > boxMax[axis])
+            {
+                A += direction[axis] * direction[axis];
+                B += direction[axis] * (start[axis] - boxMax[axis]);
+            }
+        }
+
+        if (A <= 0.0f)
+            continue;
+
+        float t = -B / A;
+
+        if (t < lower || t > upper)
+            continue;
+
+        float distanceSquared = 0.0f;
+
+        for (int axis = 0; axis < 3; ++axis)
+        {
+            float point = start[axis] + direction[axis] * t;
+            float closest = std::clamp(point, boxMin[axis], boxMax[axis]);
+            float delta = point - closest;
+
+            distanceSquared += delta * delta;
+        }
+        minDistanceSquared = std::min(minDistanceSquared, distanceSquared);
+    }
+
+    return minDistanceSquared <= capsule.radius * capsule.radius;
 }
 
 bool Collision::IntersectsAABB(const WorldAABB& a, const WorldAABB& b)
