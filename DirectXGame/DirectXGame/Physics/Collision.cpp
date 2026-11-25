@@ -21,6 +21,28 @@ bool Collision::IntersectsAABBSphere(const WorldAABB& box, const WorldSphere& sp
     return distanceSquared <= sphere.radius * sphere.radius;
 }
 
+bool Collision::IntersectsCapsuleSphere(const WorldCapsule& capsule, const WorldSphere& sphere)
+{
+    float vectorX = capsule.pointB.x - capsule.pointA.x;
+    float vectorY = capsule.pointB.y - capsule.pointA.y;
+    float vectorZ = capsule.pointB.z - capsule.pointA.z;
+    float dx = sphere.center.x - capsule.pointA.x;
+    float dy = sphere.center.y - capsule.pointA.y;
+    float dz = sphere.center.z - capsule.pointA.z;
+    float lengthSquared = vectorX * vectorX + vectorY * vectorY + vectorZ * vectorZ;
+    float dot = dx * vectorX + dy * vectorY + dz * vectorZ;
+    float t = lengthSquared > 1e-6f ? std::clamp(dot / lengthSquared, 0.0f, 1.0f) : 0.0f;
+    float closestX = capsule.pointA.x + vectorX * t;
+    float closestY = capsule.pointA.y + vectorY * t;
+    float closestZ = capsule.pointA.z + vectorZ * t;
+    float distanceX = sphere.center.x - closestX;
+    float distanceY = sphere.center.y - closestY;
+    float distanceZ = sphere.center.z - closestZ;
+    float distanceSquared = distanceX * distanceX + distanceY * distanceY + distanceZ * distanceZ;
+
+    return  distanceSquared <= (capsule.radius + sphere.radius) * (capsule.radius + sphere.radius);
+}
+
 bool Collision::IntersectsAABB(const WorldAABB& a, const WorldAABB& b)
 {
     float distanceX = std::abs(a.center.x - b.center.x);
@@ -69,4 +91,23 @@ WorldSphere Collision::ToWorldSphere(const SphereCollider& collider, const Direc
     worldSphere.radius = collider.radius * std::max({std::abs(scale.x), std::abs(scale.y), std::abs(scale.z)});
 
     return worldSphere;
+}
+
+WorldCapsule Collision::ToWorldCapsule(const CapsuleCollider& collider, const DirectX::XMFLOAT3& position,
+    const DirectX::XMFLOAT3& scale)
+{
+    WorldCapsule worldCapsule;
+
+    worldCapsule.pointA.x = position.x + collider.pointA.x * scale.x;
+    worldCapsule.pointB.x = position.x + collider.pointB.x * scale.x;
+
+    worldCapsule.pointA.y = position.y + collider.pointA.y * scale.y;
+    worldCapsule.pointB.y = position.y + collider.pointB.y * scale.y;
+
+    worldCapsule.pointA.z = position.z + collider.pointA.z * scale.z;
+    worldCapsule.pointB.z = position.z + collider.pointB.z * scale.z;
+
+    worldCapsule.radius = collider.radius * std::max({std::abs(scale.x), std::abs(scale.y), std::abs(scale.z)});
+
+    return worldCapsule;
 }
