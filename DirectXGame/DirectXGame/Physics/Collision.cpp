@@ -1,5 +1,6 @@
 #include "Physics/Collision.h"
 #include <cmath>
+#include <algorithm>
 
 bool Collision::IntersectsAABB(const WorldAABB& a, const WorldAABB& b)
 {
@@ -25,4 +26,28 @@ WorldAABB Collision::ToWorldAABB(const AABBCollider& collider, const DirectX::XM
     worldAABB.halfExtents.z = collider.halfExtents.z * std::abs(scale.z);
 
     return worldAABB;
+}
+
+bool Collision::IntersectsSphere(const WorldSphere& a, const WorldSphere& b)
+{
+    float dx = a.center.x - b.center.x;
+    float dy = a.center.y - b.center.y;
+    float dz = a.center.z - b.center.z;
+    float distanceSquared = dx * dx + dy * dy + dz * dz;
+    float radiusSum = a.radius + b.radius;
+
+    return distanceSquared <= radiusSum * radiusSum;
+}
+
+WorldSphere Collision::ToWorldSphere(const SphereCollider& collider, const DirectX::XMFLOAT3& position,
+    const DirectX::XMFLOAT3& scale)
+{
+    WorldSphere worldSphere;
+
+    worldSphere.center.x = position.x + collider.center.x * scale.x;
+    worldSphere.center.y = position.y + collider.center.y * scale.y;
+    worldSphere.center.z = position.z + collider.center.z * scale.z;
+    worldSphere.radius = collider.radius * std::max({std::abs(scale.x), std::abs(scale.y), std::abs(scale.z)});
+
+    return worldSphere;
 }

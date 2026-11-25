@@ -228,7 +228,7 @@ int WINAPI WinMain
                 scene[1]->transform.scale);
 
             bool isColliding = Collision::IntersectsAABB(worldA, worldB);
-            OutputDebugStringA(isColliding ? "Collision: TRUE\n" : "Collision: FALSE\n");
+            //OutputDebugStringA(isColliding ? "Collision: TRUE\n" : "Collision: FALSE\n");
 
             SceneUpdate(scene, deltaTime);
             renderer.BeginFrame();
