@@ -2,6 +2,25 @@
 #include <cmath>
 #include <algorithm>
 
+bool Collision::IntersectsAABBSphere(const WorldAABB& box, const WorldSphere& sphere)
+{
+    float min = box.center.x - box.halfExtents.x;
+    float max = box.center.x + box.halfExtents.x;
+    float closestX = std::clamp(sphere.center.x, min, max);
+    min = box.center.y - box.halfExtents.y;
+    max = box.center.y + box.halfExtents.y;
+    float closestY = std::clamp(sphere.center.y, min, max);
+    min = box.center.z - box.halfExtents.z;
+    max = box.center.z + box.halfExtents.z;
+    float closestZ = std::clamp(sphere.center.z, min, max);
+    float dx = sphere.center.x - closestX;
+    float dy = sphere.center.y - closestY;
+    float dz = sphere.center.z - closestZ;
+    float distanceSquared = dx * dx + dy * dy + dz * dz;
+
+    return distanceSquared <= sphere.radius * sphere.radius;
+}
+
 bool Collision::IntersectsAABB(const WorldAABB& a, const WorldAABB& b)
 {
     float distanceX = std::abs(a.center.x - b.center.x);
