@@ -221,11 +221,15 @@ int WINAPI WinMain
                 direction.z += 1;
             }
             scene[0]->movement.Move(scene[0]->transform, direction, static_cast<float>(deltaTime));
-            bool isColliding = Collision::IntersectsAABB(
-                scene[0]->collider, scene[0]->transform.position,
-                scene[1]->collider, scene[1]->transform.position
-            );
+
+            WorldAABB worldA = Collision::ToWorldAABB(scene[0]->collider, scene[0]->transform.position,
+                scene[0]->transform.scale);
+            WorldAABB worldB = Collision::ToWorldAABB(scene[1]->collider, scene[1]->transform.position,
+                scene[1]->transform.scale);
+
+            bool isColliding = Collision::IntersectsAABB(worldA, worldB);
             OutputDebugStringA(isColliding ? "Collision: TRUE\n" : "Collision: FALSE\n");
+
             SceneUpdate(scene, deltaTime);
             renderer.BeginFrame();
             renderer.Draw(scene, camera);

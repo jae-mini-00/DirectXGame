@@ -4,6 +4,7 @@
 
 namespace Collision
 {
-    bool IntersectsAABB(const AABBCollider& a, const DirectX::XMFLOAT3& positionA,
-        const AABBCollider& b, const DirectX::XMFLOAT3& positionB);
+    bool IntersectsAABB(const WorldAABB& a, const WorldAABB& b);
+    WorldAABB ToWorldAABB(const AABBCollider& collider, const DirectX::XMFLOAT3& position,
+        const DirectX::XMFLOAT3& scale);
 }

@@ -3,6 +3,7 @@
 #include "Core/Camera.h"
 #include "Scene/GameObject.h"
 #include "Scene/Scene.h"
+#include "Physics/Collision.h"
 
 #include <DirectXMath.h>
 #include <d3dcompiler.h>
@@ -56,6 +57,8 @@ namespace
     static_assert(sizeof(MatrixConstants) % 16 == 0,
         "D3D11 constant buffers require 16-byte alignment in size.");
 
+    // Renderer::Draw() relies on its D3D11 state remaining bound between frames.
+    // Preserve every pipeline slot changed by this debug pass.
     class ScopedDebugState
     {
     public:
@@ -92,7 +95,7 @@ namespace
         ScopedDebugState& operator=(const ScopedDebugState&) = delete;
 
     private:
-        ID3D11DeviceContext* context_ = nullptr;
+        ID3D11DeviceContext* context_ = nullptr; // Borrowed, not owned.
         D3D11_PRIMITIVE_TOPOLOGY topology_ = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
         UINT vertexStride_ = 0;
         UINT vertexOffset_ = 0;
@@ -113,9 +116,13 @@ namespace
         {{0, 4}}, {{1, 5}}, {{2, 6}}, {{3, 7}}
     }};
 
-    bool IsValidHalfExtents(const DirectX::XMFLOAT3& extents)
+    bool IsValidWorldAABB(const WorldAABB& box)
     {
-        return std::isfinite(extents.x) && std::isfinite(extents.y) &&
+        const auto& center = box.center;
+        const auto& extents = box.halfExtents;
+        return std::isfinite(center.x) && std::isfinite(center.y) &&
+            std::isfinite(center.z) &&
+            std::isfinite(extents.x) && std::isfinite(extents.y) &&
             std::isfinite(extents.z) &&
             extents.x >= 0.0f && extents.y >= 0.0f && extents.z >= 0.0f;
     }
@@ -192,6 +199,8 @@ HRESULT DebugRenderer::Initialize(ID3D11Device* device, ID3D11DeviceContext* con
     hr = device->CreateBuffer(&matrixDesc, nullptr, matrixBuffer_.ReleaseAndGetAddressOf());
     if (FAILED(hr)) return hr;
 
+    // Make the debug box visible even when its lines are inside a model.
+    // Disable depth writes too, so this overlay cannot affect subsequent rendering.
     D3D11_DEPTH_STENCIL_DESC depthDesc = {};
     depthDesc.DepthEnable = FALSE;
     depthDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
@@ -242,18 +251,25 @@ void DebugRenderer::DrawColliders(const Scene& scene, const Camera& camera) cons
     for (std::size_t i = 0; i < scene.size(); ++i)
     {
         const GameObject* object = scene[i];
-        if (!object || !IsValidHalfExtents(object->collider.halfExtents))
+        if (!object)
             continue;
 
-        const auto& position = object->transform.position;
-        const auto& collider = object->collider;
+        // Use the same world-space conversion as the collision system.
+        // Do not apply Transform scale again here.
+        const WorldAABB box = Collision::ToWorldAABB(
+            object->collider,
+            object->transform.position,
+            object->transform.scale);
 
-        const float cx = position.x + collider.center.x;
-        const float cy = position.y + collider.center.y;
-        const float cz = position.z + collider.center.z;
-        const float hx = collider.halfExtents.x;
-        const float hy = collider.halfExtents.y;
-        const float hz = collider.halfExtents.z;
+        if (!IsValidWorldAABB(box))
+            continue;
+
+        const float cx = box.center.x;
+        const float cy = box.center.y;
+        const float cz = box.center.z;
+        const float hx = box.halfExtents.x;
+        const float hy = box.halfExtents.y;
+        const float hz = box.halfExtents.z;
 
         const std::array<DirectX::XMFLOAT3, 8> corners = {{
             {cx - hx, cy - hy, cz - hz},
