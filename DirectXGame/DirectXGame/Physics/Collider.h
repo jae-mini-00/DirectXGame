@@ -1,6 +1,7 @@
 #pragma once
 
 #include <DirectXMath.h>
+#include <variant>
 
 struct AABBCollider
 {
@@ -39,3 +40,9 @@ struct WorldCapsule
 	DirectX::XMFLOAT3 pointB = { 0.0f, 0.5f, 0.0f };
 	float radius = 0.5f;
 };
+
+using Collider = std::variant<std::monostate, AABBCollider,
+	SphereCollider, CapsuleCollider>;
+
+using WorldCollider = std::variant<std::monostate, WorldAABB,
+	WorldSphere, WorldCapsule>;

@@ -2,6 +2,54 @@
 #include <cmath>
 #include <algorithm>
 
+WorldCollider Collision::ToWorldCollider(const Collider& collider, const DirectX::XMFLOAT3& position,
+    const DirectX::XMFLOAT3& scale)
+{
+    return std::visit([&](const auto& value) -> WorldCollider
+        {
+            using T = std::decay_t<decltype(value)>;
+
+            if constexpr (std::is_same_v<T, AABBCollider>)
+                return ToWorldAABB(value, position, scale);
+            else if constexpr (std::is_same_v<T, SphereCollider>)
+                return ToWorldSphere(value, position, scale);
+            else if constexpr (std::is_same_v<T, CapsuleCollider>)
+                return ToWorldCapsule(value, position, scale);
+            else
+                return std::monostate{};
+        }, collider);
+}
+
+bool Collision::Intersects(const WorldCollider& a, const WorldCollider& b)
+{
+    return std::visit([&](const auto& value1, const auto& value2) -> bool
+        {
+            using T1 = std::decay_t<decltype(value1)>;
+            using T2 = std::decay_t<decltype(value2)>;
+
+            if constexpr (std::is_same_v<T1, WorldAABB> && std::is_same_v<T2, WorldAABB>)
+                return Collision::IntersectsAABB(value1, value2);
+            else if constexpr (std::is_same_v<T1, WorldAABB> && std::is_same_v<T2, WorldSphere>)
+                return Collision::IntersectsAABBSphere(value1, value2);
+            else if constexpr (std::is_same_v<T1, WorldAABB> && std::is_same_v<T2, WorldCapsule>)
+                return Collision::IntersectsAABBCapsule(value1, value2);
+            else if constexpr (std::is_same_v<T1, WorldSphere> && std::is_same_v<T2, WorldSphere>)
+                return Collision::IntersectsSphere(value1, value2);
+            else if constexpr (std::is_same_v<T1, WorldCapsule> && std::is_same_v<T2, WorldSphere>)
+                return Collision::IntersectsCapsuleSphere(value1, value2);
+            else if constexpr (std::is_same_v<T1, WorldCapsule> && std::is_same_v<T2, WorldCapsule>)
+                return Collision::IntersectsCapsule(value1, value2);
+            else if constexpr (std::is_same_v<T2, WorldAABB> && std::is_same_v<T1, WorldSphere>)
+                return Collision::IntersectsAABBSphere(value2, value1);
+            else if constexpr (std::is_same_v<T2, WorldAABB> && std::is_same_v<T1, WorldCapsule>)
+                return Collision::IntersectsAABBCapsule(value2, value1);
+            else if constexpr (std::is_same_v<T2, WorldCapsule> && std::is_same_v<T1, WorldSphere>)
+                return Collision::IntersectsCapsuleSphere(value2, value1);
+            return
+                false;
+        }, a, b);
+}
+
 bool Collision::IntersectsAABBSphere(const WorldAABB& box, const WorldSphere& sphere)
 {
     float closestX = std::clamp(sphere.center.x, box.center.x - box.halfExtents.x, box.center.x + box.halfExtents.x);
@@ -190,7 +238,7 @@ WorldSphere Collision::ToWorldSphere(const SphereCollider& collider, const Direc
     return worldSphere;
 }
 
-bool Collision::IntersectsCapsuleCapsule(const WorldCapsule& a, const WorldCapsule& b)
+bool Collision::IntersectsCapsule(const WorldCapsule& a, const WorldCapsule& b)
 {
     float dAx = a.pointB.x - a.pointA.x;
     float dBx = b.pointB.x - b.pointA.x;

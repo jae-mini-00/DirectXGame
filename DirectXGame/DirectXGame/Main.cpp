@@ -91,6 +91,10 @@ void SceneUpdate(Scene& scene, double deltaTime)
     }
 }
 
+#include <vector>
+#include <cstdio>
+#include <cmath>
+
 int WINAPI WinMain
 (
     HINSTANCE hInstance,
@@ -180,49 +184,6 @@ int WINAPI WinMain
     auto previousTime = std::chrono::steady_clock::now();
 
     Input input;
-
-    WorldAABB box{
-        { 0.0f, 0.0f, 0.0f },
-        { 1.0f, 1.0f, 1.0f }
-    };
-
-    // 테스트 1: 캡슐 중심 선분이 AABB를 통과
-    WorldCapsule capsule1{
-        { -2.0f, 0.0f, 0.0f },
-        {  2.0f, 0.0f, 0.0f },
-        0.25f
-    };
-
-    // 테스트 2: AABB 측면과 정확히 접촉
-    WorldCapsule capsule2{
-        { 1.5f, -2.0f, 0.0f },
-        { 1.5f,  2.0f, 0.0f },
-        0.5f
-    };
-
-    // 테스트 3: AABB와 분리
-    WorldCapsule capsule3{
-        { 2.0f, -2.0f, 0.0f },
-        { 2.0f,  2.0f, 0.0f },
-        0.5f
-    };
-
-    // 테스트 4: 중심 선분 길이가 0인 경우
-    WorldCapsule capsule4{
-        { 1.2f, 0.0f, 0.0f },
-        { 1.2f, 0.0f, 0.0f },
-        0.25f
-    };
-
-    bool test1 = Collision::IntersectsAABBCapsule(box, capsule1);
-    bool test2 = Collision::IntersectsAABBCapsule(box, capsule2);
-    bool test3 = Collision::IntersectsAABBCapsule(box, capsule3);
-    bool test4 = Collision::IntersectsAABBCapsule(box, capsule4);
-
-    OutputDebugStringA(test1 ? "Test 1: PASS\n" : "Test 1: FAIL\n");
-    OutputDebugStringA(test2 ? "Test 2: PASS\n" : "Test 2: FAIL\n");
-    OutputDebugStringA(!test3 ? "Test 3: PASS\n" : "Test 3: FAIL\n");
-    OutputDebugStringA(test4 ? "Test 4: PASS\n" : "Test 4: FAIL\n");
 
     while (msg.message != WM_QUIT)
     {
