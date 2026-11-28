@@ -2,6 +2,11 @@
 #include <cmath>
 #include <algorithm>
 
+bool Collision::CanDetect(const CollisionFilter& observer, const CollisionFilter& target)
+{
+    return (observer.collisionMask & target.collisionLayer) > 0u;
+}
+
 WorldCollider Collision::ToWorldCollider(const Collider& collider, const DirectX::XMFLOAT3& position,
     const DirectX::XMFLOAT3& scale)
 {

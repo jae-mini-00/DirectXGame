@@ -4,6 +4,8 @@
 
 namespace Collision
 {
+    bool CanDetect(const CollisionFilter& observer, const CollisionFilter& target);
+
     WorldCollider ToWorldCollider(const Collider& collider, const DirectX::XMFLOAT3& position,
         const DirectX::XMFLOAT3& scale);
     bool Intersects(const WorldCollider& a, const WorldCollider& b);
