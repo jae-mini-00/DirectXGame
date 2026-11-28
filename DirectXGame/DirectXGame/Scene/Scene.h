@@ -4,10 +4,17 @@
 #include <vector>
 #include <memory>
 
+struct CollidingPair
+{
+	const GameObject* first;
+	const GameObject* second;
+};
+
 class Scene 
 {
 	public :
 		void AddObject(std::unique_ptr<GameObject> object);
+		std::vector<CollidingPair> DetectCollisions();
 
 		std::size_t size() const;
 		GameObject* operator[](std::size_t index);

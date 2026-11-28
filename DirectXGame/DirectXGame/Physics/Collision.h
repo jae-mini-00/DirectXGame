@@ -25,4 +25,6 @@ namespace Collision
     bool IntersectsCapsule(const WorldCapsule& a, const WorldCapsule& b);
     WorldCapsule ToWorldCapsule(const CapsuleCollider& collider, const DirectX::XMFLOAT3& position,
         const DirectX::XMFLOAT3& scale);
+
+    const CollisionFilter* GetFilter(const Collider& collider);
 }

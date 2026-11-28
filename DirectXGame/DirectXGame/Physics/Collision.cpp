@@ -1,6 +1,8 @@
 #include "Physics/Collision.h"
 #include <cmath>
 #include <algorithm>
+#include <variant>
+#include <type_traits>
 
 bool Collision::CanDetect(const CollisionFilter& observer, const CollisionFilter& target)
 {
@@ -327,4 +329,21 @@ WorldCapsule Collision::ToWorldCapsule(const CapsuleCollider& collider, const Di
     worldCapsule.radius = collider.radius * std::max({std::abs(scale.x), std::abs(scale.y), std::abs(scale.z)});
 
     return worldCapsule;
+}
+
+const CollisionFilter* Collision::GetFilter(const Collider& collider)
+{
+    return std::visit([](const auto& value) -> const CollisionFilter*
+        {
+
+            using T = std::decay_t<decltype(value)>;
+            if constexpr (std::is_same_v<T, AABBCollider>)
+                return &value.filter;
+            else if constexpr (std::is_same_v<T, SphereCollider>)
+                return &value.filter;
+            else if constexpr (std::is_same_v<T, CapsuleCollider>)
+                return &value.filter;
+            else
+                return nullptr;
+        }, collider);
 }

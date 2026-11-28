@@ -193,6 +193,62 @@ int WINAPI WinMain
 
     Input input;
 
+    {
+        Scene testScene;
+        const auto layer = LayerBit(CollisionLayer::Layer1);
+
+        for (int i = 0; i < 2; ++i)
+        {
+            auto object = std::make_unique<GameObject>();
+            object->transform.position = { 0.0f, 0.0f, 0.0f };
+            object->transform.scale = { 1.0f, 1.0f, 1.0f };
+
+            SphereCollider sphere{};
+            sphere.filter.collisionLayer = layer;
+            object->collider = sphere;
+            testScene.AddObject(std::move(object));
+        }
+
+        auto* a = testScene[0];
+        auto* b = testScene[1];
+        auto& maskA = std::get<SphereCollider>(a->collider).filter.collisionMask;
+        auto& maskB = std::get<SphereCollider>(b->collider).filter.collisionMask;
+
+        const auto check = [&](const char* name, bool expectAB, bool expectBA)
+            {
+                const auto pairs = testScene.DetectCollisions();
+                int countAB = 0;
+                int countBA = 0;
+                for (const auto& pair : pairs)
+                {
+                    if (pair.first == a && pair.second == b) ++countAB;
+                    if (pair.first == b && pair.second == a) ++countBA;
+                }
+
+                const bool passed = countAB == static_cast<int>(expectAB)
+                    && countBA == static_cast<int>(expectBA)
+                    && pairs.size() == static_cast<std::size_t>(countAB + countBA);
+
+                OutputDebugStringA(passed ? "[PASS] " : "[FAIL] ");
+                OutputDebugStringA(name);
+                OutputDebugStringA("\n");
+            };
+
+        check("Neither detects", false, false);
+
+        maskB = layer;
+        check("B detects A only", false, true);
+
+        maskA = layer;
+        check("Both detect each other", true, true);
+
+        maskB = 0u;
+        check("A detects B only", true, false);
+
+        b->transform.position.x = 10.0f;
+        check("Separated spheres", false, false);
+    }
+
     while (msg.message != WM_QUIT)
     {
         if (PeekMessage(&msg, nullptr,
@@ -237,29 +293,7 @@ int WINAPI WinMain
             const auto& player = *scene[0];
             const auto& barrel = *scene[1];
 
-            const auto& playerCollider = std::get<CapsuleCollider>(player.collider);
-            const auto& barrelCollider = std::get<SphereCollider>(barrel.collider);
-
-            bool wasColliding = false;
-            bool isColliding = false;
-
-            if (Collision::CanDetect(playerCollider.filter, barrelCollider.filter))
-            {
-                const WorldCollider worldA = Collision::ToWorldCollider(
-                    player.collider, player.transform.position, player.transform.scale);
-
-                const WorldCollider worldB = Collision::ToWorldCollider(
-                    barrel.collider, barrel.transform.position, barrel.transform.scale);
-
-                isColliding = Collision::Intersects(worldA, worldB);
-            }
-
-            if (isColliding && !wasColliding)
-            {
-                OutputDebugStringA("[Collision] Player capsule hit the barrel.\n");
-            }
-
-            wasColliding = isColliding;
+            const auto pairs = scene.DetectCollisions();
 
             SceneUpdate(scene, deltaTime);
             renderer.BeginFrame();
