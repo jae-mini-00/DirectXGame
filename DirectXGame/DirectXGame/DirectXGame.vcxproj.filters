@@ -167,6 +167,9 @@
     <ClInclude Include="Graphics\DebugRenderer.h">
       <Filter>헤더 파일\Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="Physics\CollisionLayer.h">
+      <Filter>헤더 파일\Phsics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\PixelShader.hlsl">
