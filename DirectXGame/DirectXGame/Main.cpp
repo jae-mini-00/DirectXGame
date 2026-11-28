@@ -166,16 +166,18 @@ int WINAPI WinMain
         MessageBox(hwnd, L"Player Add Failed", L"Error", MB_OK);
         return 0;
     }
-    // 캐릭터
-    AABBCollider a;
-    a.center = { 0.0f, 0.9f, 0.0f };
-    a.halfExtents = { 0.3f, 0.9f, 0.3f };
-    scene[0]->collider = a;
-    // 드럼통
-    AABBCollider b;
-    b.center = { 0.0f, 0.6f, 0.0f };
-    b.halfExtents = { 0.6f, 0.6f, 0.6f };
-    scene[1]->collider = b;
+    // 캐릭터: 세로 캡슐
+    CapsuleCollider capsule;
+    capsule.pointA = { 0.0f, 30.0f, 0.0f };
+    capsule.pointB = { 0.0f, 150.0f, 0.0f };
+    capsule.radius = 30.0f;
+    scene[0]->collider = capsule;
+
+    // 드럼통: 구
+    SphereCollider sphere;
+    sphere.center = { 0.0f, 0.6f, 0.0f };
+    sphere.radius = 0.6f;
+    scene[1]->collider = sphere;
 
     RECT rect;
     GetClientRect(hwnd, &rect);
