@@ -20,5 +20,5 @@ class GameObject
         Model model;
         Animator animator;
         Movement movement;
-        AABBCollider collider;
+        Collider collider;
 };

@@ -167,12 +167,15 @@ int WINAPI WinMain
         return 0;
     }
     // 캐릭터
-    scene[0]->collider.center = { 0.0f, 0.9f, 0.0f };
-    scene[0]->collider.halfExtents = { 0.3f, 0.9f, 0.3f };
-
+    AABBCollider a;
+    a.center = { 0.0f, 0.9f, 0.0f };
+    a.halfExtents = { 0.3f, 0.9f, 0.3f };
+    scene[0]->collider = a;
     // 드럼통
-    scene[1]->collider.center = { 0.0f, 0.6f, 0.0f };
-    scene[1]->collider.halfExtents = { 0.6f, 0.6f, 0.6f };
+    AABBCollider b;
+    b.center = { 0.0f, 0.6f, 0.0f };
+    b.halfExtents = { 0.6f, 0.6f, 0.6f };
+    scene[1]->collider = b;
 
     RECT rect;
     GetClientRect(hwnd, &rect);
@@ -226,12 +229,12 @@ int WINAPI WinMain
             }
             scene[0]->movement.Move(scene[0]->transform, direction, static_cast<float>(deltaTime));
 
-            WorldAABB worldA = Collision::ToWorldAABB(scene[0]->collider, scene[0]->transform.position,
+            WorldCollider worldA = Collision::ToWorldCollider(scene[0]->collider, scene[0]->transform.position,
                 scene[0]->transform.scale);
-            WorldAABB worldB = Collision::ToWorldAABB(scene[1]->collider, scene[1]->transform.position,
+            WorldCollider worldB = Collision::ToWorldCollider(scene[1]->collider, scene[1]->transform.position,
                 scene[1]->transform.scale);
 
-            bool isColliding = Collision::IntersectsAABB(worldA, worldB);
+            bool isColliding = Collision::Intersects(worldA, worldB);
             //OutputDebugStringA(isColliding ? "Collision: TRUE\n" : "Collision: FALSE\n");
 
             SceneUpdate(scene, deltaTime);

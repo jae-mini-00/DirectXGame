@@ -11,7 +11,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
-#include <cstring>
+#include <vector>
 
 #pragma comment(lib, "d3dcompiler.lib")
 
@@ -126,6 +126,91 @@ namespace
             std::isfinite(extents.z) &&
             extents.x >= 0.0f && extents.y >= 0.0f && extents.z >= 0.0f;
     }
+    using Point = DirectX::XMFLOAT3;
+    using Lines = std::vector<Point>;
+    constexpr int kSegments = 32;
+    constexpr float kPi = 3.14159265358979323846f;
+    // A capsule has two rings, four semicircles and four straight edges.
+    constexpr size_t kMaxWireVertices = 8 * kSegments + 8;
+
+    void AddArc(Lines& lines, Point center, Point u, Point v, float radius,
+        int segments, float angle)
+    {
+        Point previous{};
+        for (int i = 0; i <= segments; ++i)
+        {
+            const float t = angle * static_cast<float>(i) / segments;
+            const float x = radius * std::cos(t);
+            const float y = radius * std::sin(t);
+            const Point current{center.x + x*u.x + y*v.x,
+                center.y + x*u.y + y*v.y, center.z + x*u.z + y*v.z};
+            if (i > 0)
+            {
+                lines.push_back(previous);
+                lines.push_back(current);
+            }
+            previous = current;
+        }
+    }
+
+    void AddSphere(Lines& lines, Point center, float radius)
+    {
+        const Point x{1,0,0}, y{0,1,0}, z{0,0,1};
+        AddArc(lines, center, x, y, radius, kSegments, 2*kPi);
+        AddArc(lines, center, y, z, radius, kSegments, 2*kPi);
+        AddArc(lines, center, z, x, radius, kSegments, 2*kPi);
+    }
+
+    void AddCapsule(Lines& lines, const WorldCapsule& cap)
+    {
+        const Point a = cap.pointA, b = cap.pointB;
+        const Point d{b.x-a.x, b.y-a.y, b.z-a.z};
+        const float length = std::hypot(d.x, d.y, d.z);
+        if (length == 0)
+        {
+            AddSphere(lines, a, cap.radius);
+            return;
+        }
+
+        const Point axis{d.x/length, d.y/length, d.z/length};
+        Point u = std::abs(axis.x) < 0.8f
+            ? Point{0, axis.z, -axis.y} : Point{-axis.z, 0, axis.x};
+        const float norm = std::hypot(u.x, u.y, u.z);
+        u = {u.x/norm, u.y/norm, u.z/norm};
+        const Point v{axis.y*u.z-axis.z*u.y, axis.z*u.x-axis.x*u.z,
+            axis.x*u.y-axis.y*u.x};
+        AddArc(lines, a, u, v, cap.radius, kSegments, 2*kPi);
+        AddArc(lines, b, u, v, cap.radius, kSegments, 2*kPi);
+        const Point backwards{-axis.x, -axis.y, -axis.z};
+        for (Point side : {u, v})
+        {
+            AddArc(lines, a, side, backwards, cap.radius, kSegments/2, kPi);
+            AddArc(lines, b, side, axis, cap.radius, kSegments/2, kPi);
+            for (float offset : {cap.radius, -cap.radius})
+            {
+                lines.push_back({a.x+side.x*offset, a.y+side.y*offset, a.z+side.z*offset});
+                lines.push_back({b.x+side.x*offset, b.y+side.y*offset, b.z+side.z*offset});
+            }
+        }
+    }
+
+    void AddBox(Lines& lines, const WorldAABB& box)
+    {
+        if (!IsValidWorldAABB(box))
+            return;
+        const auto& c = box.center;
+        const auto& h = box.halfExtents;
+        std::array<Point, 8> corners{};
+        for (unsigned i = 0; i < corners.size(); ++i)
+            corners[i] = {c.x + ((i & 1) ? h.x : -h.x),
+                c.y + ((i & 2) ? h.y : -h.y), c.z + ((i & 4) ? h.z : -h.z)};
+        for (auto edge : kBoxEdges)
+        {
+            lines.push_back(corners[edge[0]]);
+            lines.push_back(corners[edge[1]]);
+        }
+    }
+
 }
 
 struct DebugRenderer::DebugVertex
@@ -185,7 +270,7 @@ HRESULT DebugRenderer::Initialize(ID3D11Device* device, ID3D11DeviceContext* con
     if (FAILED(hr)) return hr;
 
     D3D11_BUFFER_DESC vertexDesc = {};
-    vertexDesc.ByteWidth = static_cast<UINT>(sizeof(DebugVertex) * 24);
+    vertexDesc.ByteWidth = static_cast<UINT>(sizeof(DebugVertex) * kMaxWireVertices);
     vertexDesc.Usage = D3D11_USAGE_DYNAMIC;
     vertexDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
     vertexDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -246,48 +331,43 @@ void DebugRenderer::DrawColliders(const Scene& scene, const Camera& camera) cons
     context->OMSetDepthStencilState(depthState_.Get(), 0);
     context->RSSetState(rasterizerState_.Get());
 
-    const DirectX::XMFLOAT4 color = {0.05f, 0.75f, 0.10f, 1.0f};
-
+    struct Entry
+    {
+        WorldCollider shape;
+        bool colliding = false;
+    };
+    std::vector<Entry> entries;
+    entries.reserve(scene.size());
     for (std::size_t i = 0; i < scene.size(); ++i)
     {
-        const GameObject* object = scene[i];
-        if (!object)
+        const auto* object = scene[i];
+        if (object && !std::holds_alternative<std::monostate>(object->collider))
+            entries.push_back({Collision::ToWorldCollider(object->collider,
+                object->transform.position, object->transform.scale)});
+    }
+
+    for (std::size_t i = 0; i < entries.size(); ++i)
+        for (std::size_t j = i + 1; j < entries.size(); ++j)
+            if (Collision::Intersects(entries[i].shape, entries[j].shape))
+                entries[i].colliding = entries[j].colliding = true;
+
+    Lines lines;
+    lines.reserve(kMaxWireVertices);
+    for (const Entry& entry : entries)
+    {
+        lines.clear();
+        if (const auto* box = std::get_if<WorldAABB>(&entry.shape))
+            AddBox(lines, *box);
+        else if (const auto* sphere = std::get_if<WorldSphere>(&entry.shape))
+            AddSphere(lines, sphere->center, sphere->radius);
+        else if (const auto* capsule = std::get_if<WorldCapsule>(&entry.shape))
+            AddCapsule(lines, *capsule);
+        if (lines.empty())
             continue;
 
-        // Use the same world-space conversion as the collision system.
-        // Do not apply Transform scale again here.
-        const WorldAABB box = Collision::ToWorldAABB(
-            object->collider,
-            object->transform.position,
-            object->transform.scale);
-
-        if (!IsValidWorldAABB(box))
-            continue;
-
-        const float cx = box.center.x;
-        const float cy = box.center.y;
-        const float cz = box.center.z;
-        const float hx = box.halfExtents.x;
-        const float hy = box.halfExtents.y;
-        const float hz = box.halfExtents.z;
-
-        const std::array<DirectX::XMFLOAT3, 8> corners = {{
-            {cx - hx, cy - hy, cz - hz},
-            {cx + hx, cy - hy, cz - hz},
-            {cx - hx, cy + hy, cz - hz},
-            {cx + hx, cy + hy, cz - hz},
-            {cx - hx, cy - hy, cz + hz},
-            {cx + hx, cy - hy, cz + hz},
-            {cx - hx, cy + hy, cz + hz},
-            {cx + hx, cy + hy, cz + hz}
-        }};
-
-        std::array<DebugVertex, 24> vertices = {};
-        for (std::size_t edge = 0; edge < kBoxEdges.size(); ++edge)
-        {
-            vertices[edge * 2] = {corners[kBoxEdges[edge][0]], color};
-            vertices[edge * 2 + 1] = {corners[kBoxEdges[edge][1]], color};
-        }
+        const DirectX::XMFLOAT4 color = entry.colliding
+            ? DirectX::XMFLOAT4{1.0f, 0.1f, 0.1f, 1.0f}
+            : DirectX::XMFLOAT4{0.05f, 0.75f, 0.10f, 1.0f};
 
         D3D11_MAPPED_SUBRESOURCE mapped = {};
         HRESULT hr = context->Map(vertexBuffer_.Get(), 0,
@@ -295,8 +375,10 @@ void DebugRenderer::DrawColliders(const Scene& scene, const Camera& camera) cons
         if (FAILED(hr))
             break;
 
-        std::memcpy(mapped.pData, vertices.data(), sizeof(vertices));
+        auto* output = static_cast<DebugVertex*>(mapped.pData);
+        for (const Point& point : lines)
+            *output++ = {point, color};
         context->Unmap(vertexBuffer_.Get(), 0);
-        context->Draw(static_cast<UINT>(vertices.size()), 0);
+        context->Draw(static_cast<UINT>(lines.size()), 0);
     }
 }
