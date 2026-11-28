@@ -17,3 +17,8 @@ struct CollisionFilter
 	std::uint32_t collisionLayer = 1u << static_cast<unsigned>(CollisionLayer::Default);
 	std::uint32_t collisionMask = 0;
 };
+
+constexpr std::uint32_t LayerBit(CollisionLayer layer)
+{
+	return 1u << static_cast<unsigned>(layer);
+}

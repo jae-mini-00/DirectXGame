@@ -10,6 +10,8 @@
 #include "Scene/Movement.h"
 #include "Physics/Collision.h"
 #include "Graphics/DebugRenderer.h"
+#include "Physics/CollisionLayer.h"
+#include "Physics/Collision.h"
 
 #include <Windows.h>
 #include <DirectXMath.h>
@@ -166,17 +168,18 @@ int WINAPI WinMain
         MessageBox(hwnd, L"Player Add Failed", L"Error", MB_OK);
         return 0;
     }
-    // 캐릭터: 세로 캡슐
-    CapsuleCollider capsule;
+    
+    CapsuleCollider capsule{};
     capsule.pointA = { 0.0f, 30.0f, 0.0f };
     capsule.pointB = { 0.0f, 150.0f, 0.0f };
     capsule.radius = 30.0f;
+    capsule.filter.collisionMask = LayerBit(CollisionLayer::Layer1);
     scene[0]->collider = capsule;
 
-    // 드럼통: 구
-    SphereCollider sphere;
+    SphereCollider sphere{};
     sphere.center = { 0.0f, 0.6f, 0.0f };
     sphere.radius = 0.6f;
+    sphere.filter.collisionLayer = LayerBit(CollisionLayer::Layer1);
     scene[1]->collider = sphere;
 
     RECT rect;
@@ -231,13 +234,32 @@ int WINAPI WinMain
             }
             scene[0]->movement.Move(scene[0]->transform, direction, static_cast<float>(deltaTime));
 
-            WorldCollider worldA = Collision::ToWorldCollider(scene[0]->collider, scene[0]->transform.position,
-                scene[0]->transform.scale);
-            WorldCollider worldB = Collision::ToWorldCollider(scene[1]->collider, scene[1]->transform.position,
-                scene[1]->transform.scale);
+            const auto& player = *scene[0];
+            const auto& barrel = *scene[1];
 
-            bool isColliding = Collision::Intersects(worldA, worldB);
-            //OutputDebugStringA(isColliding ? "Collision: TRUE\n" : "Collision: FALSE\n");
+            const auto& playerCollider = std::get<CapsuleCollider>(player.collider);
+            const auto& barrelCollider = std::get<SphereCollider>(barrel.collider);
+
+            bool wasColliding = false;
+            bool isColliding = false;
+
+            if (Collision::CanDetect(playerCollider.filter, barrelCollider.filter))
+            {
+                const WorldCollider worldA = Collision::ToWorldCollider(
+                    player.collider, player.transform.position, player.transform.scale);
+
+                const WorldCollider worldB = Collision::ToWorldCollider(
+                    barrel.collider, barrel.transform.position, barrel.transform.scale);
+
+                isColliding = Collision::Intersects(worldA, worldB);
+            }
+
+            if (isColliding && !wasColliding)
+            {
+                OutputDebugStringA("[Collision] Player capsule hit the barrel.\n");
+            }
+
+            wasColliding = isColliding;
 
             SceneUpdate(scene, deltaTime);
             renderer.BeginFrame();
